@@ -19,4 +19,6 @@ namespace NumberplateRecognition
             Frame?.Dispose();
         }
     }
+
+
 }
