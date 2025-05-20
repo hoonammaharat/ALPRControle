@@ -1,7 +1,8 @@
 ﻿using NumberplateRecognition;
 using OpenCvSharp;
-using System.IO;
-using System.Threading.Channels;
+using System.Text.Json;
+//using System.IO;
+//using System.Threading.Channels;
 
 
 List<string> inputCamURLs = [ "rtsp://:8554/test" ];
@@ -9,13 +10,16 @@ List<string> outputCamURLs = [];
 List<Task> tasks = [];
 
 
+
 // Manual and direct path for debugging Model execution without concurrency complexities:
 
-List<string> pathes = new List<string>() { "E:\\a.jpg", "E:\\b.jpg", "E:\\c.jpg", "E:\\e.jpg", "E:\\f.jpg" };
-var model = new Model("E:\\yolo11s.onnx");
+var json = File.ReadAllText("E:\\Projects\\NumberplateRecognition\\NumberplateRecognition\\images.json");
+var pathes = JsonSerializer.Deserialize<List<string>>(json)!;
+
+var model = new Model("E:\\Projects\\NumberplateRecognition\\NumberplateRecognition\\Models\\yolo11s.onnx");
 foreach (var path in pathes)
 {
-    Console.WriteLine("File: " + path);
+    Console.WriteLine("File: " + path + "\n");
     var frame = Cv2.ImRead(path);
     Cv2.CvtColor(frame, frame, ColorConversionCodes.BGR2RGB);
     model.DetectTruck(frame);
@@ -42,6 +46,9 @@ foreach (var path in pathes)
 //            await Task.Delay(450);
 //        }*/
 
+
+//        // Real algoritm with streaming and all features:
+//
 //        /*var capture = new VideoCapture(inputCamURLs[x]);
 //        if (!capture.IsOpened())
 //        {

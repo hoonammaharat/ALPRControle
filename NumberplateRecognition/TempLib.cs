@@ -36,7 +36,7 @@ namespace NumberplateRecognition
 
         public bool DetectTruck(Mat frame)
         {
-            if (frame.Height != 640 || frame.Width != 960) throw new ArgumentException("size is not correct!");
+            if (frame.Height != 640 || frame.Width != 960) throw new ArgumentException("Size is not correct!");
 
             var image = frame.Clone();
 
@@ -68,7 +68,7 @@ namespace NumberplateRecognition
                 int max = 0;
                 for (int b = 0; b < result.Dimensions[2]; b++)
                 {
-                    if (result[0, 4, b] > max) max = b;
+                    if (result[0, 4, b] > max) max = b; // Debug
 
                     if (result[0, 4, b] > 0.5 && result[0, 12, b] > 0.5)
                     {
@@ -76,6 +76,8 @@ namespace NumberplateRecognition
                         return true;
                     }
                 }
+
+                // For debugging pupose and tracing footprint:
 
                 var classScores = new List<(int, float)>();
                 for (int i = 5; i < result.Dimensions[1]; i++)
