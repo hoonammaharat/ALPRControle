@@ -4,18 +4,25 @@ using System.IO;
 using System.Threading.Channels;
 
 
-List<string> pathes = new List<string>() { "E:\\a.jpg", "E:\\b.jpg", "E:\\c.jpg", "E:\\e.jpg", "E:\\f.jpg" };
 List<string> inputCamURLs = [ "rtsp://:8554/test" ];
 List<string> outputCamURLs = [];
 List<Task> tasks = [];
 
-var model = new Model("E:\\yolo11n.onnx");
 
+// Manual and direct path for debugging Model execution without concurrency complexities:
+
+List<string> pathes = new List<string>() { "E:\\a.jpg", "E:\\b.jpg", "E:\\c.jpg", "E:\\e.jpg", "E:\\f.jpg" };
+var model = new Model("E:\\yolo11s.onnx");
 foreach (var path in pathes)
 {
+    Console.WriteLine("File: " + path);
     var frame = Cv2.ImRead(path);
+    Cv2.CvtColor(frame, frame, ColorConversionCodes.BGR2RGB);
     model.DetectTruck(frame);
 }
+
+
+// Actual Algoritm for running app properly and concurrently:
 
 //for (int x = 0; x < inputCamURLs.Count; x++)
 //{
@@ -23,7 +30,9 @@ foreach (var path in pathes)
 
 //    var t1 = Task.Run(async () =>
 //    {
-//        foreach(var path in pathes)
+//        // Debugging model execution in concurrent mode without network streaming execution:
+//
+//        /*foreach(var path in pathes)
 //        {
 //            Console.WriteLine("File: " + path + "\n");
 //            var frame = Cv2.ImRead(path);
@@ -31,7 +40,7 @@ foreach (var path in pathes)
 //            frame.Dispose();
 //            await channel.Writer.WriteAsync(record);
 //            await Task.Delay(450);
-//        }
+//        }*/
 
 //        /*var capture = new VideoCapture(inputCamURLs[x]);
 //        if (!capture.IsOpened())
@@ -56,11 +65,10 @@ foreach (var path in pathes)
 //    });
 //    tasks.Add(t1);
 
+//    var model = new Model("E:\\yolo11n.onnx");
 
 //    var t2 = Task.Run(async () =>
 //    {
-//        var model = new Model("E:\\yolo11n.onnx");
-
 //        while (true)
 //        {
 //            var record = await channel.Reader.ReadAsync();
