@@ -30,7 +30,7 @@ namespace NumberplateRecognition
         public Model(string modelPath)
         {
             Session = new InferenceSession(modelPath);
-            Console.WriteLine("Model loaded correctly.");
+            Console.WriteLine("Model loaded correctly.\n");
         }
 
         public bool DetectTruck(Mat frame)
@@ -52,25 +52,30 @@ namespace NumberplateRecognition
             }
 
             image.Dispose();
+
             var input = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("images", tensor) };
 
             var timer = Stopwatch.StartNew();
             using (var output = Session.Run(input))
             {
                 timer.Stop();
-                Console.WriteLine(timer.ElapsedMilliseconds);
+                Console.WriteLine(timer.ElapsedMilliseconds.ToString() + "\n");
+
                 var result = output.First().AsTensor<float>();
-                for (int b = 0; b < result.Dimensions[1]; b++)
+                Console.WriteLine(result.Dimensions.ToString());
+                Console.WriteLine(result.Dimensions[0].ToString() + "   " + result.Dimensions[1].ToString() + "   " + result.Dimensions[2].ToString(), "\n");
+
+                for (int b = 0; b < result.Dimensions[2]; b++)
                 {
-                    if (result[0, b, 4] > 0.5 && result[0, b, 12] > 0.55)
+                    if (result[0, 4, b] > 0.1 && result[0, 12, b] > 0.55)
                     {
-                        Console.WriteLine("truck found");
+                        Console.WriteLine("truck found in box " + b.ToString() + " with:\nconfidence: " + result[0, 4, b].ToString() + "\nscore: " + result[0, 12, b].ToString() + "\n");
                         return true;
                     }
                 }
             }
 
-            Console.WriteLine("truck not found");
+            Console.WriteLine("truck not found\n");
             return false;
         }
     }
