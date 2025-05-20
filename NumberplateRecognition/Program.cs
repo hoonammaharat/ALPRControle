@@ -3,13 +3,10 @@ using OpenCvSharp;
 using System.Threading.Channels;
 
 
+List<string> pathes = new List<string>() { "E:\\a.jpg", "E:\\b.jpg", "E:\\c.jpg", "E:\\d.jpg", "E:\\e.jpg" };
 List<string> inputCamURLs = [ "rtsp://:8554/test" ];
 List<string> outputCamURLs = [];
 List<Task> tasks = [];
-
-var model = new Model("E:\\yolo11n.onnx");
-Thread.Sleep(5000);
-List<string> pathes = new List<string>() { "E:\\a.jpg", "E:\\b.jpg", "E:\\c.jpg", "E:\\d.jpg", "E:\\e.jpg" };
 
 
 //for (int x = 0; x < inputCamURLs.Length; x++)
@@ -23,6 +20,8 @@ List<string> pathes = new List<string>() { "E:\\a.jpg", "E:\\b.jpg", "E:\\c.jpg"
         {
             var frame = Cv2.ImRead(path);
             var record = new Record(frame.Clone(), 1);
+            await channel.Writer.WriteAsync(record);
+            await Task.Delay(450);
         }
 
         //var capture = new VideoCapture(inputCamURLs[x]);
