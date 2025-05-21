@@ -72,6 +72,7 @@ foreach (var path in pathes)
 //    });
 //    tasks.Add(t1);
 
+
 //    var model = new Model("E:\\yolo11n.onnx");
 
 //    var t2 = Task.Run(async () =>

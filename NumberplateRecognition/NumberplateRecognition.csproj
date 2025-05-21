@@ -8,9 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Intel.ML.OnnxRuntime.OpenVino" Version="1.21.0" />
     <PackageReference Include="Microsoft.AI.DirectML" Version="1.15.4" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.22.0" />
     <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.22.0" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.22.0" />
     <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.22.0" />
     <PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.22.0" />
     <PackageReference Include="OpenCvSharp4" Version="4.11.0.20250507" />
@@ -20,5 +21,15 @@
   <ItemGroup>
     <Folder Include="Images\" />
   </ItemGroup>
+
+  <!-- <Target Name="ReplaceOnnxRuntimeDLLForDirectML" AfterTargets="Build">
+    <Message Text="Replacing OnnxRuntime.dll with DirectML version. it's harmless and compatible, it can run model in simple mode; just other ExecutionProviders may need another special runtime" Importance="high" />
+    <Copy SourceFiles="C:\Users\Aseman Rasam\.nuget\packages\microsoft.ml.onnxruntime.directml\1.22.0\runtimes\win-x64\native\onnxruntime.dll" DestinationFiles="C:\Users\Aseman Rasam\source\repos\NumberplateRecognition\NumberplateRecognition\bin\Debug\net9.0\runtimes\win-x64\native\onnxruntime.dll" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false" />
+  </Target> -->
+
+  <Target Name="ReplaceOnnxRuntimeDLLForOpenVino" AfterTargets="Build">
+    <Message Text="Replacing OnnxRuntime.dll with OpenVino version. it's harmless and compatible, it can run model in simple mode; just other ExecutionProviders may need another special runtime" Importance="high" />
+    <Copy SourceFiles="C:\Users\Aseman Rasam\.nuget\packages\intel.ml.onnxruntime.openvino\1.21.0\runtimes\win-x64\native\onnxruntime.dll" DestinationFiles="C:\Users\Aseman Rasam\source\repos\NumberplateRecognition\NumberplateRecognition\bin\Debug\net9.0\runtimes\win-x64\native\onnxruntime.dll" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false" />
+  </Target>
 
 </Project>

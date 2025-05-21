@@ -1,8 +1,10 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using Microsoft.ML.OnnxRuntime;
+﻿using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OpenCvSharp;
+using OpenCvSharp.Dnn;
+using System.Diagnostics;
+using System.Xml.Linq;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace NumberplateRecognition
 {
@@ -30,7 +32,19 @@ namespace NumberplateRecognition
 
         public Model(string modelPath)
         {
-            Session = new InferenceSession(modelPath);
+            var options = new SessionOptions();
+
+
+            options.AppendExecutionProvider_OpenVINO("CPU");
+            // OpenVino needs a special version of onnxruntime.dll, which is not copied in output dir automatically; copy this script in .csproj file:
+            // < !-- < Target Name = "ReplaceOnnxRuntimeDLLForDirectML" AfterTargets = "Build" > < Message Text = "Replacing OnnxRuntime.dll with DirectML version. it's harmless and compatible, it can run model in simple mode; just other ExecutionProviders may need another special runtime" Importance = "high" /> < Copy SourceFiles = "C:\Users\Aseman Rasam\.nuget\packages\intel.ml.onnxruntime.directml\1.22.0\runtimes\win-x64\native\onnxruntime.dll" DestinationFiles = "C:\Users\Aseman Rasam\source\repos\NumberplateRecognition\NumberplateRecognition\bin\Debug\net9.0\runtimes\win-x64\native\onnxruntime.dll" OverwriteReadOnlyFiles = "true" SkipUnchangedFiles = "false" /> </ Target > -->
+
+            // options.AppendExecutionProvider_DML();
+            // DML needs a special version of onnxruntime.dll, which is not copied in output dir automatically; copy this script in .csproj file:
+            // < !-- < Target Name = "ReplaceOnnxRuntimeDLLForDirectML" AfterTargets = "Build" > < Message Text = "Replacing OnnxRuntime.dll with DirectML version. it's harmless and compatible, it can run model in simple mode; just other ExecutionProviders may need another special runtime" Importance = "high" /> < Copy SourceFiles = "C:\Users\Aseman Rasam\.nuget\packages\microsoft.ml.onnxruntime.directml\1.22.0\runtimes\win-x64\native\onnxruntime.dll" DestinationFiles = "C:\Users\Aseman Rasam\source\repos\NumberplateRecognition\NumberplateRecognition\bin\Debug\net9.0\runtimes\win-x64\native\onnxruntime.dll" OverwriteReadOnlyFiles = "true" SkipUnchangedFiles = "false" /> </ Target > -->
+
+
+            Session = new InferenceSession(modelPath, options);
             Console.WriteLine("Model loaded successfully.\n");
         }
 
