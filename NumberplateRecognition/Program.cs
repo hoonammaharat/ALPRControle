@@ -16,10 +16,10 @@ List<Task> tasks = [];
 var json = File.ReadAllText("E:\\Projects\\NumberplateRecognition\\NumberplateRecognition\\images.json");
 var pathes = JsonSerializer.Deserialize<List<string>>(json)!;
 
-var openVino = "OpenVINO";
+string? openVino = null;
 var OpenVINOOption = new Dictionary<string, string>() { { "enable_opencl_throttling", "true" }, { "device_type", "GPU" } };
 
-var model = new Model("E:\\Projects\\NumberplateRecognition\\NumberplateRecognition\\Models\\yolo11s.onnx", openVino, OpenVINOOption);
+var model = new Model("E:\\Projects\\NumberplateRecognition\\NumberplateRecognition\\Models\\yolo11n.onnx", openVino, OpenVINOOption);
 
 foreach (var path in pathes)
 {

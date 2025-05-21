@@ -1,10 +1,7 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OpenCvSharp;
-using OpenCvSharp.Dnn;
 using System.Diagnostics;
-using System.Xml.Linq;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace NumberplateRecognition
 {
@@ -63,9 +60,9 @@ namespace NumberplateRecognition
                 for (int w = 0; w < 960; w++)
                 {
                     var pixel = image.At<Vec3b>(h, w);
-                    tensor[0, 0, h, w] = pixel.Item0;
-                    tensor[0, 1, h, w] = pixel.Item1;
-                    tensor[0, 2, h, w] = pixel.Item2;
+                    tensor[0, 0, h, w] = pixel.Item0 / 255.0f;
+                    tensor[0, 1, h, w] = pixel.Item1 / 255.0f;
+                    tensor[0, 2, h, w] = pixel.Item2 / 255.0f;
                 }
             }
 
@@ -81,34 +78,17 @@ namespace NumberplateRecognition
 
                 var result = output.First().AsTensor<float>();  // result is a disposable list of OnnxNamedValue, but you has only one output, we get and convert it to Tensor
 
-
-                var mostTruckScoreBoxes = new List<int>();
-                for (int b = 0; b < result.Dimensions[2]; b++)
+                for (int b = 0; b < result.Dimensions[1]; b++)
                 {
-                    if (result[0, 4, b] > 0.1 && result[0, 12, b] > 0.1)
+                    if (result[0, b, 4] > 0.6 && result[0, b, 5] == 7)
                     {
-                        mostTruckScoreBoxes.Add(b);
-                    }
-
-                    if (result[0, 4, b] > 0.4 && result[0, 12, b] > 0.4)
-                    {
-                        Console.WriteLine("truck found in box " + b.ToString() + " with:\nconfidence: " + result[0, 4, b].ToString() + "\nscore: " + result[0, 12, b].ToString() + "\n");
+                        Console.WriteLine("truck found in box " + b.ToString() + " with:\n\nconfidence: " + result[0, b, 4].ToString() + "\n\n\n");
                         return true;
                     }
                 }
-
-                // For debugging pupose and tracing footprint:
-
-                Console.WriteLine("most truck score boxes: \n");
-                int roof = 0;
-                foreach (int i in mostTruckScoreBoxes)
-                {
-                    Console.WriteLine(i.ToString() + ": conf = " + result[0, 4, i].ToString() + ", truck: " + result[0, 12, i].ToString() + ", train: " + result[0, 11, i].ToString());
-                    if (roof >= 6) break;
-                }
             }
 
-            Console.WriteLine("truck not found\n");
+            Console.WriteLine("truck not found\n\n\n");
             return false;
         }
     }

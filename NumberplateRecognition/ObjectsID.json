@@ -1,9 +1,0 @@
-{
-  "0": "center_x",
-  "1": "center_y",
-  "2": "width",
-  "3": "height",
-  "4": "confidence",
-
-  "5": "object with coco index 0; so id - 5 = coco ID"
-}
