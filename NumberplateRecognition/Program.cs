@@ -17,7 +17,7 @@ var json = File.ReadAllText("E:\\Projects\\NumberplateRecognition\\NumberplateRe
 var pathes = JsonSerializer.Deserialize<List<string>>(json)!;
 
 var openVino = "OpenVINO";
-var OpenVINOOption = new Dictionary<string, string>() { { "enable_opencl_throttling", "false" }, { "device_type", "GPU" } };
+var OpenVINOOption = new Dictionary<string, string>() { { "enable_opencl_throttling", "true" }, { "device_type", "GPU" } };
 
 var model = new Model("E:\\Projects\\NumberplateRecognition\\NumberplateRecognition\\Models\\yolo11s.onnx", openVino, OpenVINOOption);
 
