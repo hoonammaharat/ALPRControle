@@ -1,33 +1,16 @@
-﻿using Microsoft.ML.OnnxRuntime;
+﻿using System.Diagnostics;
+using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OpenCvSharp;
-using System.Diagnostics;
 
-namespace NumberplateRecognition
+
+namespace NumberplateRecognition.Services
 {
-    public class Record
-    {
-        public Mat Frame { get; set; }
-
-        public int CameraID { get; set; }
-
-        public Record(Mat frame, int id)
-        {
-            Frame = frame;
-            CameraID = id;
-        }
-
-        public void Dispose()
-        {
-            Frame?.Dispose();
-        }
-    }
-
-    public class Model
+    public class OnnxModel : ITruckDetectorModel
     {
         public InferenceSession? Session { get; set; }
 
-        public Model(string modelPath, string? executionProvider, Dictionary<string, string>? providerOption)
+        public OnnxModel(string modelPath, string? executionProvider = null, Dictionary<string, string>? providerOption = null)
         {
             if (executionProvider != null)
             {
@@ -53,7 +36,8 @@ namespace NumberplateRecognition
                     // < !-- < Target Name = "ReplaceOnnxRuntimeDLLForDirectML" AfterTargets = "Build" > < Message Text = "Replacing OnnxRuntime.dll with DirectML version. it's harmless and compatible, it can run model in simple mode; just other ExecutionProviders may need another special runtime" Importance = "high" /> < Copy SourceFiles = "C:\Users\Aseman Rasam\.nuget\packages\intel.ml.onnxruntime.directml\1.22.0\runtimes\win-x64\native\onnxruntime.dll" DestinationFiles = "C:\Users\Aseman Rasam\source\repos\NumberplateRecognition\NumberplateRecognition\bin\Debug\net9.0\runtimes\win-x64\native\onnxruntime.dll" OverwriteReadOnlyFiles = "true" SkipUnchangedFiles = "false" /> </ Target > -->
                     Session = new InferenceSession(modelPath, options);
                 }
-            } else Session = new InferenceSession(modelPath);
+            }
+            else Session = new InferenceSession(modelPath);
 
             Console.WriteLine("Model loaded successfully.\n");
         }
@@ -85,7 +69,7 @@ namespace NumberplateRecognition
             using (var output = Session!.Run(input))
             {
                 timer.Stop();
-                Console.WriteLine("Model Latency: " + timer.ElapsedMilliseconds.ToString() + "\n");  // Model Latency
+                Console.WriteLine("Model Latency: " + timer.ElapsedMilliseconds.ToString());  // Model Latency
 
                 var result = output.First().AsTensor<float>();  // result is a disposable list of OnnxNamedValue, but you has only one output, we get and convert it to Tensor
 
@@ -93,13 +77,13 @@ namespace NumberplateRecognition
                 {
                     if (result[0, b, 4] > 0.6 && result[0, b, 5] == 7)
                     {
-                        Console.WriteLine("truck found in box " + b.ToString() + " with:\n\nconfidence: " + result[0, b, 4].ToString() + "\n\n\n");
+                        Console.WriteLine("truck found in box " + b.ToString() + " with confidence: " + result[0, b, 4].ToString() + "\n\n");
                         return true;
                     }
                 }
             }
 
-            Console.WriteLine("truck not found\n\n\n");
+            Console.WriteLine("truck not found\n\n");
             return false;
         }
     }

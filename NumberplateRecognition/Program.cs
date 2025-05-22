@@ -1,94 +1,171 @@
-﻿using NumberplateRecognition;
+﻿using NumberplateRecognition.Entities;
+using NumberplateRecognition.Services;
 using OpenCvSharp;
 using System.Text.Json;
-//using System.IO;
-//using System.Threading.Channels;
+using System.Threading.Channels;
 
 
-List<string> inputCamURLs = [ "rtsp://:8554/test" ];
-List<string> outputCamURLs = [];
-List<Task> tasks = [];
-
-
-
-// Manual and direct path for debugging Model execution without concurrency complexities:
+// Sources
 
 var json = File.ReadAllText("E:\\Projects\\NumberplateRecognition\\NumberplateRecognition\\images.json");
 var pathes = JsonSerializer.Deserialize<List<string>>(json)!;
 
-string openVino = "OpenVINO";
-var OpenVINOOption = new Dictionary<string, string>() { { "enable_opencl_throttling", "true" }, { "device_type", "GPU" } };
+List<string> insideCamURLs = [];
+List<string> outsideCamURLs = [];
 
-var model = new Model("E:\\Projects\\NumberplateRecognition\\NumberplateRecognition\\Models\\yolo11n.onnx", "CUDA", OpenVINOOption);
+string modelPath = "E:\\Projects\\NumberplateRecognition\\NumberplateRecognition\\Models\\yolo11n.onnx";
 
-while(true) foreach (var path in pathes)
-{
-    Console.WriteLine("File: " + path + "\n");
-    var frame = Cv2.ImRead(path);
-    Cv2.CvtColor(frame, frame, ColorConversionCodes.BGR2RGB);
-    model.DetectTruck(frame);
-}
+List<Task> tasks = [];
+Channel<Record> sharedChannel = Channel.CreateUnbounded<Record>();
+
+
+// Manual and direct path for debugging Model execution without concurrency complexities:
+
+//string openVino = "OpenVINO";
+//var OpenVINOOption = new Dictionary<string, string>() { { "enable_opencl_throttling", "true" }, { "device_type", "GPU" } };
+
+//ITruckDetector model = new Model(modelPath, openVino, OpenVINOOption);
+
+//foreach (var path in pathes)
+//{
+//    Console.WriteLine("File: " + path + "\n");
+//    var frame = Cv2.ImRead(path);
+//    Cv2.CvtColor(frame, frame, ColorConversionCodes.BGR2RGB);
+//    model.DetectTruck(frame);
+//}
+
 
 
 // Actual Algoritm for running app properly and concurrently:
 
-//for (int x = 0; x < inputCamURLs.Count; x++)
-//{
-//    var channel = Channel.CreateUnbounded<Record>();
+INumberplateReader reader = null;
+Task NumberplateReaderThread = Task.Run(async () => { 
+    while (true)
+    {
+        var record = await sharedChannel.Reader.ReadAsync();
+        var result = reader.ReadNumberplate(record.Frame);
 
-//    var t1 = Task.Run(async () =>
-//    {
-//        // Debugging model execution in concurrent mode without network streaming execution:
-//
-//        /*foreach(var path in pathes)
-//        {
-//            Console.WriteLine("File: " + path + "\n");
-//            var frame = Cv2.ImRead(path);
-//            var record = new Record(frame.Clone(), 1);
-//            frame.Dispose();
-//            await channel.Writer.WriteAsync(record);
-//            await Task.Delay(450);
-//        }*/
+        record.Dispose();
+    }
+});
 
 
-//        // Real algoritm with streaming and all features:
-//
-//        /*var capture = new VideoCapture(inputCamURLs[x]);
-//        if (!capture.IsOpened())
-//        {
-//            Console.WriteLine("Connection failed!");
-//        }
+for (int x = 0; x < 4; x++)
+{
+    int id = x;
+    var channel = Channel.CreateBounded<Record>(new BoundedChannelOptions(capacity: 14) { FullMode = BoundedChannelFullMode.DropOldest });
 
-//        while (true)
-//        {
-//            bool success = capture.Read(frame);
-//            if (success && !frame.Empty())
-//            {
-//                var record = new Record(frame.Clone(), x);
-//                await channel.Writer.WriteAsync(record);
-//                await Task.Delay(450);
-//            }
-//            else
-//            {
-//                Console.WriteLine("Reading stream failed or frame is empty!");
-//            }
-//        }*/
-//    });
-//    tasks.Add(t1);
+    var inCam = Task.Run(async () =>
+    {
+        // Debugging model execution in concurrent mode without network streaming execution:
+
+        while (true) foreach(var path in pathes)
+        {
+            Console.WriteLine("File: " + path + "\n");
+            var frame = Cv2.ImRead(path);
+            var record = new Record(frame, id);
+            await channel.Writer.WriteAsync(record);
+            await Task.Delay(4000);
+        }
 
 
-//    var model = new Model("E:\\yolo11n.onnx");
+        // Real algoritm with streaming and all features:
 
-//    var t2 = Task.Run(async () =>
-//    {
-//        while (true)
-//        {
-//            var record = await channel.Reader.ReadAsync();
-//            Cv2.CvtColor(record.Frame, record.Frame, ColorConversionCodes.BGR2RGB);
-//            model.DetectTruck(record.Frame);
-//        }
-//    });
-//    tasks.Add(t2);
-//}
+        /*var capture = new VideoCapture(insideCamURLs[x]);
+        if (!capture.IsOpened())
+        {
+            Console.WriteLine("Connection failed!");
+        }
 
-//Task.WhenAll(tasks).GetAwaiter().GetResult();
+        while (true)
+        {
+            var frame = new Mat();
+            bool success = capture.Read(frame);
+            if (success && !frame.Empty())
+            {
+                var record = new Record(frame, id);
+                await channel.Writer.WriteAsync(record);
+                await Task.Delay(450);
+            }
+            else
+            {
+                Console.WriteLine("Reading stream failed or frame is empty!");
+            }
+        }*/
+    });
+
+    tasks.Add(inCam);
+
+    Thread.Sleep(1000);  // to keep distance between cams
+
+
+
+    var outCam = Task.Run(async () =>
+    {
+        // Debugging model execution in concurrent mode without network streaming execution:
+
+        while (true) foreach (var path in pathes)
+            {
+                Console.WriteLine("File: " + path + "\n");
+                var frame = Cv2.ImRead(path);
+                var record = new Record(frame, -id);
+                await channel.Writer.WriteAsync(record);
+                await Task.Delay(4000);
+            }
+
+
+        // Real algoritm with streaming and all features:
+
+        /*var capture = new VideoCapture(outsideCamURLs[x]);
+        if (!capture.IsOpened())
+        {
+            Console.WriteLine("Connection failed!");
+        }
+
+        while (true)
+        {
+            var frame = new Mat();
+            bool success = capture.Read(frame);
+            if (success && !frame.Empty())
+            {
+                var record = new Record(frame, -id);
+                await channel.Writer.WriteAsync(record);
+                await Task.Delay(450);
+            }
+            else
+            {
+                Console.WriteLine("Reading stream failed or frame is empty!");
+            }
+        }*/
+    });
+
+    tasks.Add(outCam);
+
+
+
+    ITruckDetectorModel model = new OnnxModel(modelPath);
+
+    var detector = Task.Run(async () =>
+    {
+        while (true)
+        {
+            var record = await channel.Reader.ReadAsync();
+            Cv2.CvtColor(record.Frame, record.Frame, ColorConversionCodes.BGR2RGB);
+
+            Console.WriteLine(record.CameraID);
+            model.DetectTruck(record.Frame);
+
+            if (false)
+            {
+                await sharedChannel.Writer.WriteAsync(record);
+            } else record.Dispose();
+        }
+    });
+
+    tasks.Add(detector);
+
+    Thread.Sleep(1000);  // to keep distance between cams
+}
+
+
+Task.WhenAll(tasks).GetAwaiter().GetResult();
