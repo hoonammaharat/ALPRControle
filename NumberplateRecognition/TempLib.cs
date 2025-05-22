@@ -25,25 +25,36 @@ namespace NumberplateRecognition
 
     public class Model
     {
-        public InferenceSession Session { get; set; }
+        public InferenceSession? Session { get; set; }
 
         public Model(string modelPath, string? executionProvider, Dictionary<string, string>? providerOption)
         {
             if (executionProvider != null)
             {
                 var options = new SessionOptions();
-                options.AppendExecutionProvider(executionProvider, providerOption);
+                if (executionProvider == "CUDA")
+                {
+                    options.AppendExecutionProvider_CUDA(0);
+                    // CUDA needs a special version of onnxruntime.dll, which is not copied in output dir automatically; copy this script in .csproj file:
+                    // < !-- < Target Name = "ReplaceOnnxRuntimeDLLForCUDA" AfterTargets = "Build" > < Message Text = "Replacing OnnxRuntime.dll with CUDA version. it's harmless and compatible, it can run model in simple mode; just other ExecutionProviders may need another special runtime" Importance = "high" /> < Copy SourceFiles = "C:\Users\Arian\.nuget\packages\microsoft.ml.onnxruntime.gpu.windows\1.22.0\runtimes\win-x64\native\onnxruntime.dll" DestinationFiles = "E:\Projects\NumberplateRecognition\NumberplateRecognition\bin\Debug\net9.0\runtimes\win-x64\native\onnxruntime.dll" OverwriteReadOnlyFiles = "true" SkipUnchangedFiles = "false" /> </ Target >
+                    Session = new InferenceSession(modelPath, options);
+                }
+                else if (executionProvider == "DirectML")
+                {
+                    // options.AppendExecutionProvider_DML();
+                    // DML needs a special version of onnxruntime.dll, which is not copied in output dir automatically; copy this script in .csproj file:
+                    // < !-- < Target Name = "ReplaceOnnxRuntimeDLLForDirectML" AfterTargets = "Build" > < Message Text = "Replacing OnnxRuntime.dll with DirectML version. it's harmless and compatible, it can run model in simple mode; just other ExecutionProviders may need another special runtime" Importance = "high" /> < Copy SourceFiles = "C:\Users\Aseman Rasam\.nuget\packages\microsoft.ml.onnxruntime.directml\1.22.0\runtimes\win-x64\native\onnxruntime.dll" DestinationFiles = "C:\Users\Aseman Rasam\source\repos\NumberplateRecognition\NumberplateRecognition\bin\Debug\net9.0\runtimes\win-x64\native\onnxruntime.dll" OverwriteReadOnlyFiles = "true" SkipUnchangedFiles = "false" /> </ Target > -->
+                    // Session = new InferenceSession(modelPath, options);
+                }
+                else if (executionProvider == "OpenVINO")
+                {
+                    options.AppendExecutionProvider(executionProvider, providerOption);
+                    // OpenVino needs a special version of onnxruntime.dll, which is not copied in output dir automatically; copy this script in .csproj file:
+                    // < !-- < Target Name = "ReplaceOnnxRuntimeDLLForDirectML" AfterTargets = "Build" > < Message Text = "Replacing OnnxRuntime.dll with DirectML version. it's harmless and compatible, it can run model in simple mode; just other ExecutionProviders may need another special runtime" Importance = "high" /> < Copy SourceFiles = "C:\Users\Aseman Rasam\.nuget\packages\intel.ml.onnxruntime.directml\1.22.0\runtimes\win-x64\native\onnxruntime.dll" DestinationFiles = "C:\Users\Aseman Rasam\source\repos\NumberplateRecognition\NumberplateRecognition\bin\Debug\net9.0\runtimes\win-x64\native\onnxruntime.dll" OverwriteReadOnlyFiles = "true" SkipUnchangedFiles = "false" /> </ Target > -->
+                    Session = new InferenceSession(modelPath, options);
+                }
+            } else Session = new InferenceSession(modelPath);
 
-                // OpenVino needs a special version of onnxruntime.dll, which is not copied in output dir automatically; copy this script in .csproj file:
-                // < !-- < Target Name = "ReplaceOnnxRuntimeDLLForDirectML" AfterTargets = "Build" > < Message Text = "Replacing OnnxRuntime.dll with DirectML version. it's harmless and compatible, it can run model in simple mode; just other ExecutionProviders may need another special runtime" Importance = "high" /> < Copy SourceFiles = "C:\Users\Aseman Rasam\.nuget\packages\intel.ml.onnxruntime.directml\1.22.0\runtimes\win-x64\native\onnxruntime.dll" DestinationFiles = "C:\Users\Aseman Rasam\source\repos\NumberplateRecognition\NumberplateRecognition\bin\Debug\net9.0\runtimes\win-x64\native\onnxruntime.dll" OverwriteReadOnlyFiles = "true" SkipUnchangedFiles = "false" /> </ Target > -->
-
-                // options.AppendExecutionProvider_DML();
-                // DML needs a special version of onnxruntime.dll, which is not copied in output dir automatically; copy this script in .csproj file:
-                // < !-- < Target Name = "ReplaceOnnxRuntimeDLLForDirectML" AfterTargets = "Build" > < Message Text = "Replacing OnnxRuntime.dll with DirectML version. it's harmless and compatible, it can run model in simple mode; just other ExecutionProviders may need another special runtime" Importance = "high" /> < Copy SourceFiles = "C:\Users\Aseman Rasam\.nuget\packages\microsoft.ml.onnxruntime.directml\1.22.0\runtimes\win-x64\native\onnxruntime.dll" DestinationFiles = "C:\Users\Aseman Rasam\source\repos\NumberplateRecognition\NumberplateRecognition\bin\Debug\net9.0\runtimes\win-x64\native\onnxruntime.dll" OverwriteReadOnlyFiles = "true" SkipUnchangedFiles = "false" /> </ Target > -->
-
-                Session = new InferenceSession(modelPath, options);
-            }
-            Session = new InferenceSession(modelPath);
             Console.WriteLine("Model loaded successfully.\n");
         }
 
@@ -71,7 +82,7 @@ namespace NumberplateRecognition
             var input = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("images", tensor) };
 
             var timer = Stopwatch.StartNew();
-            using (var output = Session.Run(input))
+            using (var output = Session!.Run(input))
             {
                 timer.Stop();
                 Console.WriteLine("Model Latency: " + timer.ElapsedMilliseconds.ToString() + "\n");  // Model Latency
