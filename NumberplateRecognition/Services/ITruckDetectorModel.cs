@@ -4,6 +4,6 @@ namespace NumberplateRecognition.Services
 {
     public interface ITruckDetectorModel
     {
-        bool DetectTruck(Mat frame);
+        Task<bool> DetectTruck(Mat frame);
     }
 }

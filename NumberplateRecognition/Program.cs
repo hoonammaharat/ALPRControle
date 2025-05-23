@@ -153,7 +153,7 @@ for (int x = 0; x < 4; x++)
             Cv2.CvtColor(record.Frame, record.Frame, ColorConversionCodes.BGR2RGB);
 
             Console.WriteLine(record.CameraID);
-            model.DetectTruck(record.Frame);
+            await model.DetectTruck(record.Frame);
 
             if (false)
             {
