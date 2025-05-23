@@ -5,12 +5,21 @@ using NumberplateRecognition.Entities;
 
 namespace NumberplateRecognition.Services
 {
+    /// <summary>
+    /// It's an implementation of ITruckDetectorModel which relies on an external REST service(probably written in python) that uses Pytorch native API and runs completely on CUDA.
+    /// </summary>
     public class TorchModel : ITruckDetectorModel
     {
+        (int, int) Shape { get; set; } = (640, 960);
+
         private readonly string _modelPath;
 
         private readonly HttpClient _httpClient;
 
+        /// <summary>
+        /// This constructor gets http address of service for communication and processing frames.
+        /// </summary>
+        /// <param name="modelPath">AI model server http address</param>
         public TorchModel(string modelPath)
         {
             _modelPath = modelPath;
@@ -19,26 +28,29 @@ namespace NumberplateRecognition.Services
 
         public async Task<bool> DetectTruck(Mat frame)
         {
-            if (frame.Height != 640 || frame.Width != 960) throw new ArgumentException("Size is not correct!");
+            if (frame.Height != Shape.Item1 || frame.Width != Shape.Item2) throw new ArgumentException("Size is not correct!");
 
             var image = frame.Clone();
 
-            var tensor = new float[1, 3, 640, 960];
+            float[][][][] tensor = new float[1][][][];
+            tensor[0] = new float[3][][];
 
-            for (int h = 0; h < 640; h++)
+            for (int c = 0; c < 3; c++)
             {
-                for (int w = 0; w < 960; w++)
+                tensor[0][c] = new float[Shape.Item1][];
+                for (int h = 0; h < Shape.Item1; h++)
                 {
-                    var pixel = image.At<Vec3b>(h, w);
-                    tensor[0, 0, h, w] = pixel.Item0 / 255.0f;
-                    tensor[0, 1, h, w] = pixel.Item1 / 255.0f;
-                    tensor[0, 2, h, w] = pixel.Item2 / 255.0f;
+                    tensor[0][c][h] = new float[Shape.Item2];
+                    for (int w = 0; w < Shape.Item2; w++)
+                    {
+                        tensor[0][c][h][w] = image.At<Vec3b>(h, w)[c];
+                    }
                 }
             }
 
             image.Dispose();
 
-            var input = new { data = tensor, shape = new[] { 1, 3, frame.Height, frame.Width } };
+            var input = new { data = tensor, shape = new[] { 1, 3, Shape.Item1, Shape.Item2 } };
             var jsonInput = JsonSerializer.Serialize(input);
             var content = new StringContent(jsonInput, Encoding.UTF8, "application/json");
 
@@ -67,7 +79,7 @@ namespace NumberplateRecognition.Services
                 }
             }
 
-            return true;
+            return false;
         }
     }
 }

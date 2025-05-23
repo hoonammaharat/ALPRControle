@@ -6,10 +6,21 @@ using OpenCvSharp;
 
 namespace NumberplateRecognition.Services
 {
+    /// <summary>
+    /// It's an implementation of ITruckDetectorModel which relies on an internal ONNX Runtime session without need of external services and Pytorch native APIs.
+    /// </summary>
     public class OnnxModel : ITruckDetectorModel
     {
+        public (int, int) Shape { get; set; } = (640, 960);
+
         private readonly InferenceSession? _session;
 
+        /// <summary>
+        /// This constructor is used to start a ort session from given model file and specified execution provider and options.
+        /// </summary>
+        /// <param name="modelPath">The path to model file with onnx format</param>
+        /// <param name="executionProvider">ONNX Runtime backend for executing algoritm; by default it runs algorithm on CPU, CUDA is recommended</param>
+        /// <param name="providerOption">Extra options and settings which may be necessary for an EP</param>
         public OnnxModel(string modelPath, string? executionProvider = null, Dictionary<string, string>? providerOption = null)
         {
             if (executionProvider != null)
@@ -44,15 +55,15 @@ namespace NumberplateRecognition.Services
 
         public Task<bool> DetectTruck(Mat frame)
         {
-            if (frame.Height != 640 || frame.Width != 960) throw new ArgumentException("Size is not correct!");
+            if (frame.Height != Shape.Item1 || frame.Width != Shape.Item2) throw new ArgumentException("Size is not correct!");
 
             var image = frame.Clone();
 
-            var tensor = new DenseTensor<float>([1, 3, 640, 960]);
+            var tensor = new DenseTensor<float>([1, 3, Shape.Item1, Shape.Item2]);
 
-            for (int h = 0; h < 640; h++)  // image to tensor conversion
+            for (int h = 0; h < Shape.Item1; h++)  // image to tensor conversion
             {
-                for (int w = 0; w < 960; w++)
+                for (int w = 0; w < Shape.Item2; w++)
                 {
                     var pixel = image.At<Vec3b>(h, w);
                     tensor[0, 0, h, w] = pixel.Item0 / 255.0f;
