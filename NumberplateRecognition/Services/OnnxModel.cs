@@ -11,7 +11,7 @@ namespace NumberplateRecognition.Services
     /// </summary>
     public class OnnxModel : ITruckDetectorModel
     {
-        public (int, int) Shape { get; set; } = (640, 960);
+        public Size Shape { get; set; } = new Size(960, 640);
 
         private readonly InferenceSession? _session;
 
@@ -19,7 +19,7 @@ namespace NumberplateRecognition.Services
         /// This constructor is used to start a ort session from given model file and specified execution provider and options.
         /// </summary>
         /// <param name="modelPath">The path to model file with onnx format</param>
-        /// <param name="executionProvider">ONNX Runtime backend for executing algoritm; by default it runs algorithm on CPU, CUDA is recommended</param>
+        /// <param name="executionProvider">ONNX Runtime backend for executing algorithm; by default it runs algorithm on CPU, CUDA is recommended</param>
         /// <param name="providerOption">Extra options and settings which may be necessary for an EP</param>
         public OnnxModel(string modelPath, string? executionProvider = null, Dictionary<string, string>? providerOption = null)
         {
@@ -49,53 +49,58 @@ namespace NumberplateRecognition.Services
                 }
             }
             else _session = new InferenceSession(modelPath);
-
-            Console.WriteLine("Model loaded successfully.\n");
         }
 
         public Task<bool> DetectTruck(Mat frame)
         {
-            if (frame.Height != Shape.Item1 || frame.Width != Shape.Item2) throw new ArgumentException("Size is not correct!");
-
-            var image = frame.Clone();
-
-            var tensor = new DenseTensor<float>([1, 3, Shape.Item1, Shape.Item2]);
-
-            for (int h = 0; h < Shape.Item1; h++)  // image to tensor conversion
+            try
             {
-                for (int w = 0; w < Shape.Item2; w++)
+                if (frame.Height != Shape.Height || frame.Width != Shape.Width)
+                    throw new ArgumentException("Size is incorrect: " + frame.Height.ToString() + " * " + frame.Width.ToString() );
+
+                var image = frame.Clone();
+
+                var tensor = new DenseTensor<float>([1, 3, Shape.Height, Shape.Width]);
+
+                for (int h = 0; h < Shape.Height; h++) // image to tensor conversion
                 {
-                    var pixel = image.At<Vec3b>(h, w);
-                    tensor[0, 0, h, w] = pixel.Item2 / 255.0f;
-                    tensor[0, 1, h, w] = pixel.Item1 / 255.0f;
-                    tensor[0, 2, h, w] = pixel.Item0 / 255.0f;
-                }
-            }
-
-            image.Dispose();
-
-            var input = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("images", tensor) };
-
-            var timer = Stopwatch.StartNew();
-            using (var output = _session!.Run(input))
-            {
-                timer.Stop();
-                Console.WriteLine("Model Latency: " + timer.ElapsedMilliseconds.ToString());  // Model Latency
-
-                var result = output.First().AsTensor<float>();  // result is a disposable list of OnnxNamedValue, but you has only one output, we get and convert it to Tensor
-
-                for (int b = 0; b < result.Dimensions[1]; b++)
-                {
-                    if (result[0, b, 4] > 0.6 && result[0, b, 5] == 7)
+                    for (int w = 0; w < Shape.Width; w++)
                     {
-                        Console.WriteLine("truck found in box " + b.ToString() + " with confidence: " + result[0, b, 4].ToString() + "\n\n");
-                        return Task.FromResult(true);
+                        var pixel = image.At<Vec3b>(h, w);
+                        tensor[0, 0, h, w] = pixel.Item2 / 255.0f;
+                        tensor[0, 1, h, w] = pixel.Item1 / 255.0f;
+                        tensor[0, 2, h, w] = pixel.Item0 / 255.0f;
                     }
                 }
+
+                image.Dispose();
+
+                var input = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("images", tensor) };
+
+                using (var output = _session!.Run(input))
+                {
+                    var result =
+                        output.First()
+                            .AsTensor<
+                                float>(); // result is a disposable list of OnnxNamedValue, but you has only one output, we get and convert it to Tensor
+
+                    for (int b = 0; b < result.Dimensions[1]; b++)
+                    {
+                        if (result[0, b, 4] > 0.6 && result[0, b, 5] == 7)
+                        {
+                            return Task.FromResult(true);
+                        }
+                    }
+                }
+
+                return Task.FromResult(false);
             }
 
-            Console.WriteLine("truck not found\n\n");
-            return Task.FromResult(false);
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                return Task.FromResult(false);
+            }
         }
     }
 }

@@ -10,7 +10,7 @@ namespace NumberplateRecognition.Services
     /// </summary>
     public class TorchModel : ITruckDetectorModel
     {
-        (int, int) Shape { get; set; } = (640, 960);
+        Size Shape { get; set; }
 
         private readonly string _modelPath;
 
@@ -28,58 +28,65 @@ namespace NumberplateRecognition.Services
 
         public async Task<bool> DetectTruck(Mat frame)
         {
-            if (frame.Height != Shape.Item1 || frame.Width != Shape.Item2) throw new ArgumentException("Size is not correct!");
-
-            var image = frame.Clone();
-
-            float[][][][] tensor = new float[1][][][];
-            tensor[0] = new float[3][][];
-
-            for (int c = 0; c < 3; c++)
+            try
             {
-                tensor[0][c] = new float[Shape.Item1][];
-                for (int h = 0; h < Shape.Item1; h++)
+                var image = frame.Clone();
+                Shape = new Size(image.Width / 32 * 32, image.Height / 32 * 32);
+
+                float[][][][] tensor = new float[1][][][];
+                tensor[0] = new float[3][][];
+
+                for (int c = 0; c < 3; c++)
                 {
-                    tensor[0][c][h] = new float[Shape.Item2];
-                    for (int w = 0; w < Shape.Item2; w++)
+                    tensor[0][c] = new float[Shape.Height][];
+                    for (int h = 0; h < Shape.Height; h++)
                     {
-                        tensor[0][c][h][w] = image.At<Vec3b>(h, w)[2 - c];
+                        tensor[0][c][h] = new float[Shape.Width];
+                        for (int w = 0; w < Shape.Width; w++)
+                        {
+                            tensor[0][c][h][w] = image.At<Vec3b>(h, w)[2 - c] / 255.0f;
+                        }
                     }
                 }
-            }
 
-            image.Dispose();
+                image.Dispose();
 
-            var input = new { image = tensor, shape = new[] { 1, 3, Shape.Item1, Shape.Item2 } };
-            var jsonInput = JsonSerializer.Serialize(input);
-            var content = new StringContent(jsonInput, Encoding.UTF8, "application/json");
+                var input = new { image = tensor, shape = new[] { 1, 3, Shape.Height, Shape.Width } };
+                var jsonInput = JsonSerializer.Serialize(input);
+                var content = new StringContent(jsonInput, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync(_modelPath, content);
+                var response = await _httpClient.PostAsync(_modelPath, content);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                Console.WriteLine("Operation failed!");
-                return false;
-            }
-
-            var jsonResponse = await response.Content.ReadAsStringAsync();
-            var result = JsonSerializer.Deserialize<Result>(jsonResponse);
-            if (result?.Output == null)
-            {
-                Console.WriteLine("Operation failed!");
-                return false;
-            }
-
-            for (int b = 0; b < result.Output[1].Length; b++)
-            {
-                if (result.Output[0][b][4] > 0.6 && result.Output[0][b][5] == 7)
+                if (!response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine("truck found in box " + b.ToString() + " with confidence: " + result.Output[0][b][4].ToString() + "\n\n");
-                    return true;
+                    Console.WriteLine("Service Error: " + _modelPath);
+                    return false;
                 }
+
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<DetectionResult>(jsonResponse);
+                if (result?.Output == null)
+                {
+                    Console.WriteLine("Service app internal error: " + _modelPath);
+                    return false;
+                }
+
+                for (int b = 0; b < result.Output[0].Length; b++)
+                {
+                    if (result.Output[0][b][4] > 0.6 && result.Output[0][b][5] == 7)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
 
-            return false;
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                return false;
+            }
         }
     }
 }

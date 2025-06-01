@@ -3,7 +3,7 @@
 namespace NumberplateRecognition.Services
 {
     /// <summary>
-    /// This is an interface for communication with AI models regarless of their backend and teck stack for lose coupling and stability.
+    /// This is an interface for communication with AI models regardless of their backend and tech stack for lose coupling and stability.
     /// </summary>
     public interface ITruckDetectorModel
     {
