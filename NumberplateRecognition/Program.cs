@@ -1,4 +1,5 @@
-﻿using NumberplateRecognition.Entities;
+﻿using System.Diagnostics;
+using NumberplateRecognition.Entities;
 using NumberplateRecognition.Services;
 using OpenCvSharp;
 using System.Text.Json;
@@ -16,7 +17,6 @@ List<string> outsideCamUrls = [];
 
 
 const string detectionOnnxPath = "E:\\Projects\\NumberplateRecognition\\NumberplateRecognition\\Models\\yolo11n.onnx";
-
 const string detectionModelPath = "http://127.0.0.1:800#/detect";
 const string recognitionModelPath = "http://127.0.0.1:16000/read";
 
@@ -165,7 +165,8 @@ for (int x = 0; x < 1; x++)
 
 
 
-    ITruckDetectorModel model = new TorchModel(detectionModelPath.Replace("#", x.ToString()));
+    ITruckDetectorModel model;  // new TorchModel(detectionModelPath.Replace("#", x.ToString()));
+    model = new OnnxModel(detectionOnnxPath);
 
     taskFactories.Add(
         () => Task.Run(async () =>
@@ -176,8 +177,10 @@ for (int x = 0; x < 1; x++)
                 {
                     var record = await channel.Reader.ReadAsync();
 
-                    Console.WriteLine(record.CameraID);
+                    var timer = Stopwatch.StartNew();
                     var result = await model.DetectTruck(record.Frame);
+                    timer.Stop();
+                    Console.WriteLine(timer.ElapsedMilliseconds);
 
                     if (result)
                     {
@@ -203,6 +206,7 @@ for (int x = 0; x < 1; x++)
 foreach (var factory in taskFactories)
 {
     tasks.Add(factory());
+    Thread.Sleep(250);
 }
 
 
@@ -213,12 +217,12 @@ var superVisor = Task.Run(async () =>
     {
         while (true)
         {
-            for (int i = 0; i < tasks.Count; i++)
+            for (int i = 0; i < tasks.Count - 1; i++)
             {
-                if (tasks[i].Status != TaskStatus.Running)
+                if (tasks[i].IsFaulted || tasks[i].IsCompleted)
                 {
-                    var task = taskFactories[i]();
-                    tasks[i] = task;
+                    Console.WriteLine($"Task Restarted: {i}");
+                    tasks[i] = taskFactories[i]();
                 }
             }
 

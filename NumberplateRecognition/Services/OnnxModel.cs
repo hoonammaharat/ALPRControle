@@ -55,10 +55,9 @@ namespace NumberplateRecognition.Services
         {
             try
             {
-                if (frame.Height != Shape.Height || frame.Width != Shape.Width)
-                    throw new ArgumentException("Size is incorrect: " + frame.Height.ToString() + " * " + frame.Width.ToString() );
-
                 var image = frame.Clone();
+
+                Cv2.Resize(image, image, Shape);
 
                 var tensor = new DenseTensor<float>([1, 3, Shape.Height, Shape.Width]);
 
