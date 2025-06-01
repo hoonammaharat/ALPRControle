@@ -17,7 +17,7 @@ List<string> outsideCamUrls = [];
 
 const string detectionOnnxPath = "E:\\Projects\\NumberplateRecognition\\NumberplateRecognition\\Models\\yolo11n.onnx";
 
-const string detectionModelPath = "http://127.0.0.1:8000";
+const string detectionModelPath = "http://127.0.0.1:800#/detect";
 const string recognitionModelPath = "http://127.0.0.1:16000/read";
 
 
@@ -165,7 +165,7 @@ for (int x = 0; x < 1; x++)
 
 
 
-    ITruckDetectorModel model = new TorchModel(detectionModelPath);
+    ITruckDetectorModel model = new TorchModel(detectionModelPath.Replace("#", x.ToString()));
 
     taskFactories.Add(
         () => Task.Run(async () =>
