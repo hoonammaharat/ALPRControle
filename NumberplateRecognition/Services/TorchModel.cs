@@ -43,14 +43,14 @@ namespace NumberplateRecognition.Services
                     tensor[0][c][h] = new float[Shape.Item2];
                     for (int w = 0; w < Shape.Item2; w++)
                     {
-                        tensor[0][c][h][w] = image.At<Vec3b>(h, w)[c];
+                        tensor[0][c][h][w] = image.At<Vec3b>(h, w)[2 - c];
                     }
                 }
             }
 
             image.Dispose();
 
-            var input = new { data = tensor, shape = new[] { 1, 3, Shape.Item1, Shape.Item2 } };
+            var input = new { image = tensor, shape = new[] { 1, 3, Shape.Item1, Shape.Item2 } };
             var jsonInput = JsonSerializer.Serialize(input);
             var content = new StringContent(jsonInput, Encoding.UTF8, "application/json");
 
@@ -64,17 +64,17 @@ namespace NumberplateRecognition.Services
 
             var jsonResponse = await response.Content.ReadAsStringAsync();
             var result = JsonSerializer.Deserialize<Result>(jsonResponse);
-            if (result?.Data == null)
+            if (result?.Output == null)
             {
                 Console.WriteLine("Operation failed!");
                 return false;
             }
 
-            for (int b = 0; b < result.Data[1].Length; b++)
+            for (int b = 0; b < result.Output[1].Length; b++)
             {
-                if (result.Data[0][b][4] > 0.6 && result.Data[0][b][5] == 7)
+                if (result.Output[0][b][4] > 0.6 && result.Output[0][b][5] == 7)
                 {
-                    Console.WriteLine("truck found in box " + b.ToString() + " with confidence: " + result.Data[0][b][4].ToString() + "\n\n");
+                    Console.WriteLine("truck found in box " + b.ToString() + " with confidence: " + result.Output[0][b][4].ToString() + "\n\n");
                     return true;
                 }
             }

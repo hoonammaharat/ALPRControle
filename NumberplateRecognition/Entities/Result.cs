@@ -7,6 +7,6 @@
     {
         public int[]? Shape { get; set; }
 
-        public float[][][]? Data { get; set; }
+        public float[][][]? Output { get; set; }
     }
 }

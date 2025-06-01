@@ -71,7 +71,7 @@ for (int x = 0; x < 4; x++)
 
         // Real algoritm with streaming and all features:
 
-        /*var capture = new VideoCapture(insideCamURLs[x]);
+        var capture = new VideoCapture(insideCamURLs[x]);
         if (!capture.IsOpened())
         {
             Console.WriteLine("Connection failed!");
@@ -91,7 +91,7 @@ for (int x = 0; x < 4; x++)
             {
                 Console.WriteLine("Reading stream failed or frame is empty!");
             }
-        }*/
+        }
     });
 
     tasks.Add(inCam);
@@ -105,18 +105,18 @@ for (int x = 0; x < 4; x++)
         // Debugging model execution in concurrent mode without network streaming execution:
 
         while (true) foreach (var path in pathes)
-            {
+        {
                 Console.WriteLine("File: " + path + "\n");
                 var frame = Cv2.ImRead(path);
                 var record = new Record(frame, -id);
                 await channel.Writer.WriteAsync(record);
                 await Task.Delay(4000);
-            }
+        }
 
 
         // Real algoritm with streaming and all features:
 
-        /*var capture = new VideoCapture(outsideCamURLs[x]);
+        var capture = new VideoCapture(outsideCamURLs[x]);
         if (!capture.IsOpened())
         {
             Console.WriteLine("Connection failed!");
@@ -136,7 +136,7 @@ for (int x = 0; x < 4; x++)
             {
                 Console.WriteLine("Reading stream failed or frame is empty!");
             }
-        }*/
+        }
     });
 
     tasks.Add(outCam);
@@ -150,7 +150,6 @@ for (int x = 0; x < 4; x++)
         while (true)
         {
             var record = await channel.Reader.ReadAsync();
-            Cv2.CvtColor(record.Frame, record.Frame, ColorConversionCodes.BGR2RGB);
 
             Console.WriteLine(record.CameraID);
             await model.DetectTruck(record.Frame);

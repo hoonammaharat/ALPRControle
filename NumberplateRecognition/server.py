@@ -14,12 +14,12 @@ app = fastapi.FastAPI()
 @app.post("/detect_truck")
 async def detect_truck(request: fastapi.Request):
     body = await request.json()
-    tensor = torch.tensor(body["data"], dtype=torch.float32, device=device)
+    tensor = torch.tensor(body["image"], dtype=torch.float32, device=device)
     with torch.no_grad():
-        output = model.model(tensor)
-        result = non_max_suppression(output)
-    data = result.cpu().tolist()
-    return { "Data": data }
+        raw_output = model.model(tensor)
+        output = non_max_suppression(raw_output)
+    output = output.cpu().tolist()
+    return { "output": output }
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)

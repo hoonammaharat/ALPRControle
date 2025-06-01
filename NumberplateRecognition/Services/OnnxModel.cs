@@ -66,9 +66,9 @@ namespace NumberplateRecognition.Services
                 for (int w = 0; w < Shape.Item2; w++)
                 {
                     var pixel = image.At<Vec3b>(h, w);
-                    tensor[0, 0, h, w] = pixel.Item0 / 255.0f;
+                    tensor[0, 0, h, w] = pixel.Item2 / 255.0f;
                     tensor[0, 1, h, w] = pixel.Item1 / 255.0f;
-                    tensor[0, 2, h, w] = pixel.Item2 / 255.0f;
+                    tensor[0, 2, h, w] = pixel.Item0 / 255.0f;
                 }
             }
 
