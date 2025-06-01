@@ -1,5 +1,5 @@
-﻿using System.Text;
-using System.Text.Json;
+﻿using System.Text.Json;
+using System.Net.Http.Headers;
 using OpenCvSharp;
 using NumberplateRecognition.Entities;
 
@@ -33,27 +33,27 @@ namespace NumberplateRecognition.Services
                 var image = frame.Clone();
                 Shape = new Size(image.Width / 32 * 32, image.Height / 32 * 32);
 
-                float[][][][] tensor = new float[1][][][];
-                tensor[0] = new float[3][][];
+                byte[,,,] tensor = new byte[1, 3, Shape.Height, Shape.Width];
 
-                for (int c = 0; c < 3; c++)
+                for (int h = 0; h < Shape.Height; h++) // image to tensor conversion
                 {
-                    tensor[0][c] = new float[Shape.Height][];
-                    for (int h = 0; h < Shape.Height; h++)
+                    for (int w = 0; w < Shape.Width; w++)
                     {
-                        tensor[0][c][h] = new float[Shape.Width];
-                        for (int w = 0; w < Shape.Width; w++)
-                        {
-                            tensor[0][c][h][w] = image.At<Vec3b>(h, w)[2 - c] / 255.0f;
-                        }
+                        var pixel = image.At<Vec3b>(h, w);
+                        tensor[0, 0, h, w] = pixel.Item2;
+                        tensor[0, 1, h, w] = pixel.Item1;
+                        tensor[0, 2, h, w] = pixel.Item0;
                     }
                 }
 
                 image.Dispose();
 
-                var input = new { image = tensor, shape = new[] { 1, 3, Shape.Height, Shape.Width } };
-                var jsonInput = JsonSerializer.Serialize(input);
-                var content = new StringContent(jsonInput, Encoding.UTF8, "application/json");
+                byte[] flat = new byte[tensor.Length];
+                Buffer.BlockCopy(tensor, 0, flat, 0, flat.Length);
+
+                var content = new ByteArrayContent(flat);
+                content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                content.Headers.Add("Shape", $"1,3,{Shape.Height},{Shape.Width}");
 
                 var response = await _httpClient.PostAsync(_modelPath, content);
 
@@ -65,21 +65,15 @@ namespace NumberplateRecognition.Services
 
                 var jsonResponse = await response.Content.ReadAsStringAsync();
                 var result = JsonSerializer.Deserialize<DetectionResult>(jsonResponse);
-                if (result?.Output == null)
+                if (result?.Result == null)
                 {
                     Console.WriteLine("Service app internal error: " + _modelPath);
                     return false;
                 }
 
-                for (int b = 0; b < result.Output[0].Length; b++)
-                {
-                    if (result.Output[0][b][4] > 0.6 && result.Output[0][b][5] == 7)
-                    {
-                        return true;
-                    }
-                }
+                if (result.Result == "true") return true;
 
-                return false;
+                else return false;
             }
 
             catch (Exception ex)

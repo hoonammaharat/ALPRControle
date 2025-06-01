@@ -5,8 +5,6 @@
     /// </summary>
     public class DetectionResult
     {
-        public int[]? Shape { get; set; }
-
-        public float[][][]? Output { get; set; }
+        public string? Result { get; set; }
     }
 }

@@ -165,8 +165,8 @@ for (int x = 0; x < 1; x++)
 
 
 
-    ITruckDetectorModel model;  // new TorchModel(detectionModelPath.Replace("#", x.ToString()));
-    model = new OnnxModel(detectionOnnxPath);
+    ITruckDetectorModel model = new TorchModel(detectionModelPath.Replace("#", x.ToString()));
+    //model = new OnnxModel(detectionOnnxPath);
 
     taskFactories.Add(
         () => Task.Run(async () =>
