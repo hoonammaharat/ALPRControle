@@ -55,9 +55,9 @@ namespace NumberplateRecognition.Services
         {
             try
             {
-                var image = frame.Clone();
+                using var image = new Mat();
 
-                Cv2.Resize(image, image, Shape);
+                Cv2.Resize(frame, image, Shape);
 
                 var tensor = new DenseTensor<float>([1, 3, Shape.Height, Shape.Width]);
 
@@ -71,8 +71,6 @@ namespace NumberplateRecognition.Services
                         tensor[0, 2, h, w] = pixel.Item0 / 255.0f;
                     }
                 }
-
-                image.Dispose();
 
                 var input = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("images", tensor) };
 

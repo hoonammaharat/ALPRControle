@@ -30,32 +30,27 @@ namespace NumberplateRecognition.Services
         {
             try
             {
-                var image = frame.Clone();
+                using var image = frame.Clone();
                 Shape = new Size(image.Width / 32 * 32, image.Height / 32 * 32);
 
-                byte[,,,] tensor = new byte[1, 3, Shape.Height, Shape.Width];
+                byte[] flat = new byte[1 * 3 * Shape.Height * Shape.Width];
 
-                for (int h = 0; h < Shape.Height; h++) // image to tensor conversion
+                for (int h = 0; h < Shape.Height; h++) // image to tensor to flat array conversion
                 {
                     for (int w = 0; w < Shape.Width; w++)
                     {
                         var pixel = image.At<Vec3b>(h, w);
-                        tensor[0, 0, h, w] = pixel.Item2;
-                        tensor[0, 1, h, w] = pixel.Item1;
-                        tensor[0, 2, h, w] = pixel.Item0;
+                        flat[(0 * Shape.Height + h) * Shape.Width + w] = pixel.Item2;  // tensor byte[1, channel, height, width] -> tensor[0, c, h, w] = image.At<Vec3b>(h, w)[c]  or  (channel - c) for convert to RGB
+                        flat[(1 * Shape.Height + h) * Shape.Width + w] = pixel.Item1;
+                        flat[(2 * Shape.Height + h) * Shape.Width + w] = pixel.Item0;  // flat index = ((b * C + c) * H + h) * W + w;  b = 0  ->  (c * H + h) * W + w
                     }
                 }
 
-                image.Dispose();
-
-                byte[] flat = new byte[tensor.Length];
-                Buffer.BlockCopy(tensor, 0, flat, 0, flat.Length);
-
-                var content = new ByteArrayContent(flat);
+                using var content = new ByteArrayContent(flat);
                 content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                 content.Headers.Add("Shape", $"1,3,{Shape.Height},{Shape.Width}");
 
-                var response = await _httpClient.PostAsync(_modelPath, content);
+                using var response = await _httpClient.PostAsync(_modelPath, content);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -72,8 +67,7 @@ namespace NumberplateRecognition.Services
                 }
 
                 if (result.Result == "true") return true;
-
-                else return false;
+                return false;
             }
 
             catch (Exception ex)

@@ -1,12 +1,13 @@
 ﻿using NumberplateRecognition.Entities;
 using OpenCvSharp;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
 namespace NumberplateRecognition.Services
 {
     /// <summary>
-    /// It's an implementation of ILicensePlateReader which relies on an external REST service(probably written in python) that uses Pytorch native API and runs completely on CUDA.
+    /// It's an implementation of ILicensePlateReader which relies on an external REST service(probably written in python) that uses Deep Text Recognition models in Pytorch native API and runs completely on CUDA.
     /// </summary>
     public class DtrReader : ILicensePlateReader
     {
@@ -28,55 +29,56 @@ namespace NumberplateRecognition.Services
 
         public async Task<string> ReadPlate(Mat frame)
         {
-            var image = frame.Clone();
-
-            byte[][][] tensor = new byte[Shape.Height][][];
-
-            for (int h = 0; h < Shape.Height; h++)
+            try
             {
-                tensor[h] = new byte[Shape.Width][];
-                for (int w = 0; w < Shape.Width; w++)
+                Shape = new Size(frame.Width / 32 * 32, frame.Height / 32 * 32);
+                using var image = new Mat();
+                Cv2.Resize(frame, image, Shape);
+
+                byte[] flat = new byte[Shape.Height * Shape.Width * 3];
+
+                System.Runtime.InteropServices.Marshal.Copy(image.Data, flat, 0, flat.Length);
+
+                using var content = new ByteArrayContent(flat);
+                content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                content.Headers.Add("Shape", $"{Shape.Height},{Shape.Width},3");
+
+                using var response = await _httpClient.PostAsync(_modelPath, content);
+
+                if (!response.IsSuccessStatusCode)
                 {
-                    var pixels = image.At<Vec3b>(h, w);
-                    tensor[h][w] = [pixels.Item0, pixels.Item1, pixels.Item2];
+                    Console.WriteLine("Service Error: " + _modelPath);
+                    return "Error";
                 }
+
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<RecognitionResult>(jsonResponse);
+                if (result?.Result == null)
+                {
+                    Console.WriteLine("Service app internal error: " + _modelPath);
+                    return "Error";
+                }
+
+                if (result.Result == "NotFound")
+                {
+                    Console.WriteLine("Plate Detection failed!");
+                    return "NotFound";
+                }
+
+                if (result.Result == "None")
+                {
+                    Console.WriteLine("Text recognition failed!");
+                    return "None";
+                }
+
+                return result.Result;
             }
 
-            image.Dispose();
-
-            var input = new { image = tensor, shape = new[] { Shape.Height, Shape.Width, 3 } };
-            var jsonInput = JsonSerializer.Serialize(input);
-            var content = new StringContent(jsonInput, Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.PostAsync(_modelPath, content);
-
-            if (!response.IsSuccessStatusCode)
+            catch (Exception ex)
             {
-                Console.WriteLine("Service Error: " + _modelPath);
-                return "Error";
+                Console.WriteLine(ex);
+                return "ClientError";
             }
-
-            var jsonResponse = await response.Content.ReadAsStringAsync();
-            var result = JsonSerializer.Deserialize<RecognitionResult>(jsonResponse);
-            if (result?.Result == null)
-            {
-                Console.WriteLine("Service app internal error: " + _modelPath);
-                return "Error";
-            }
-
-            if (result.Result == "NotFound")
-            {
-                Console.WriteLine("Plate Detection failed!");
-                return "NotFound";
-            }
-
-            if (result.Result == "None")
-            {
-                Console.WriteLine("Text recognition failed!");
-                return "None";
-            }
-
-            return result.Result;
         }
     }
 }

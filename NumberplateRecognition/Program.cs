@@ -26,7 +26,7 @@ List<Task> tasks = [];
 
 
 
-// Actual Algoritm for running app properly and concurrently:
+// Actual Algorithm for running app properly and concurrently:
 
 
 Channel<Record> sharedChannel = Channel.CreateUnbounded<Record>();
@@ -39,14 +39,22 @@ taskFactories.Add(
         {
             while (true)
             {
-                var record = await sharedChannel.Reader.ReadAsync();
+                using var record = await sharedChannel.Reader.ReadAsync();
+
+                var timer = Stopwatch.StartNew();
                 var result = await reader.ReadPlate(record.Frame);
+                timer.Stop();
+                Console.WriteLine(timer.ElapsedMilliseconds);
+
                 if (result == "None")
                 {
-
+                    Console.WriteLine(result);
                 }
 
-                record.Dispose();
+                else
+                {
+                    Console.WriteLine(result);
+                }
             }
         }
 
@@ -114,7 +122,7 @@ for (int x = 0; x < 1; x++)
 
 
 
-    taskFactories.Add(
+    /*taskFactories.Add(
         () => Task.Run(async () =>
         {
             try
@@ -153,7 +161,7 @@ for (int x = 0; x < 1; x++)
                     {
                         Console.WriteLine("Reading stream failed or frame is empty!");
                     }
-                }*/
+                }*
             }
 
             catch (Exception ex)
@@ -161,7 +169,7 @@ for (int x = 0; x < 1; x++)
                 Console.WriteLine(ex);
             }
         })
-    );
+    );*/
 
 
 
@@ -181,15 +189,12 @@ for (int x = 0; x < 1; x++)
                     var result = await model.DetectTruck(record.Frame);
                     timer.Stop();
                     Console.WriteLine(timer.ElapsedMilliseconds);
-
+                    Console.WriteLine(result);
                     if (result)
                     {
-                        // await sharedChannel.Writer.WriteAsync(record);
+                        await sharedChannel.Writer.WriteAsync(record);
                     }
-                    else
-                    {
-                        record.Dispose();
-                    }
+                    else record.Dispose();
                 }
             }
 
