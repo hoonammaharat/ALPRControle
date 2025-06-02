@@ -7,26 +7,20 @@ using System.Threading.Channels;
 
 
 // Sources
-
-var json = File.ReadAllText("E:\\Projects\\NumberplateRecognition\\NumberplateRecognition\\images.json");
-var paths = JsonSerializer.Deserialize<List<string>>(json)!;
-
-
-List<string> insideCamUrls = [];
-List<string> outsideCamUrls = [];
+//var json = File.ReadAllText("E:\\Projects\\NumberplateRecognition\\NumberplateRecognition\\images.json");
+//var paths = JsonSerializer.Deserialize<List<string>>(json)!;
 
 
-const string detectionOnnxPath = "E:\\Projects\\NumberplateRecognition\\NumberplateRecognition\\Models\\yolo11n.onnx";
+var json = File.ReadAllText("");
+var urls = JsonSerializer.Deserialize<List<string>>(json);
+
+const string detectionOnnxPath = "";
 const string detectionModelPath = "http://127.0.0.1:800#/detect";
 const string recognitionModelPath = "http://127.0.0.1:16000/read";
 
 
 List<Func<Task>> taskFactories = [];
 List<Task> tasks = [];
-
-
-
-// Actual Algorithm for running app properly and concurrently:
 
 
 Channel<Record> sharedChannel = Channel.CreateUnbounded<Record>();
@@ -44,30 +38,42 @@ taskFactories.Add(
                 var timer = Stopwatch.StartNew();
                 var result = await reader.ReadPlate(record.Frame);
                 timer.Stop();
-                Console.WriteLine(timer.ElapsedMilliseconds);
+                Console.WriteLine($"Recognition latency: {timer.ElapsedMilliseconds}\n");
 
-                if (result == "None")
+                if (result == "ServiceError" || result == "InternalServiceError")
                 {
-                    Console.WriteLine(result);
+                    Console.WriteLine("Service doesn't respond correctly or is unavailable.\n");
+                }
+
+                else if (result == "ClientError")
+                {
+                    Console.WriteLine("An error occured in internal app's services, see logs.\n");
+                }
+
+                else if (result == "NotFound")
+                {
+                    Console.WriteLine($"License plate not found in detected frame on camera: {record.CameraID}\n");
                 }
 
                 else
                 {
-                    Console.WriteLine(result);
+                    Console.WriteLine($"A license plate detected in camera: {record.CameraID}\nDetected text: {result}\n");
                 }
             }
         }
 
         catch (Exception ex)
         {
-            Console.WriteLine(ex);
+            Console.WriteLine($"{ex.Message}\n");
         }
     })
 );
 
 
-for (int x = 0; x < 1; x++)
+for (int x = 0; x < (urls?.Count?? 0); x++)
 {
+    if (String.IsNullOrEmpty(urls![x])) continue;
+
     int id = x;
     var channel = Channel.CreateBounded<Record>(new BoundedChannelOptions(capacity: 14) { FullMode = BoundedChannelFullMode.DropOldest });
 
@@ -78,22 +84,20 @@ for (int x = 0; x < 1; x++)
             {
                 // Debugging model execution in concurrent mode without network streaming execution:
 
-                foreach (var path in paths)
+                /*foreach (var path in paths)
                 {
                     Console.WriteLine("File: " + path + "\n");
                     var frame = Cv2.ImRead(path);
                     var record = new Record(frame, id + 1);
                     await channel.Writer.WriteAsync(record);
                     await Task.Delay(4000);
-                }
+                }*/
 
 
-                // Real algorithm with streaming and all features:
-
-                /*var capture = new VideoCapture(insideCamURLs[x]);
+                var capture = new VideoCapture(urls[id]);
                 if (!capture.IsOpened())
                 {
-                    Console.WriteLine("Connection failed!");
+                    Console.WriteLine($"Connection failed: {urls[id]}\n");
                 }
 
                 while (true)
@@ -104,72 +108,21 @@ for (int x = 0; x < 1; x++)
                     {
                         var record = new Record(frame, id);
                         await channel.Writer.WriteAsync(record);
-                        await Task.Delay(450);
+                        await Task.Delay(500);
                     }
                     else
                     {
-                        Console.WriteLine("Reading stream failed or frame is empty!");
+                        Console.WriteLine($"Reading stream failed or frame is empty: {urls[id]}\n");
                     }
-                }*/
+                }
             }
 
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                Console.WriteLine($"{ex.Message}\n");
             }
         })
     );
-
-
-
-    /*taskFactories.Add(
-        () => Task.Run(async () =>
-        {
-            try
-            {
-                // Debugging model execution in concurrent mode without network streaming execution:
-
-                foreach (var path in paths)
-                {
-                    Console.WriteLine("File: " + path + "\n");
-                    var frame = Cv2.ImRead(path);
-                    var record = new Record(frame, -id - 1);
-                    await channel.Writer.WriteAsync(record);
-                    await Task.Delay(4000);
-                }
-
-
-                // Real algorithm with streaming and all features:
-
-                /*var capture = new VideoCapture(outsideCamURLs[x]);
-                if (!capture.IsOpened())
-                {
-                    Console.WriteLine("Connection failed!");
-                }
-
-                while (true)
-                {
-                    var frame = new Mat();
-                    bool success = capture.Read(frame);
-                    if (success && !frame.Empty())
-                    {
-                        var record = new Record(frame, -id);
-                        await channel.Writer.WriteAsync(record);
-                        await Task.Delay(450);
-                    }
-                    else
-                    {
-                        Console.WriteLine("Reading stream failed or frame is empty!");
-                    }
-                }*
-            }
-
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-            }
-        })
-    );*/
 
 
 
@@ -188,8 +141,8 @@ for (int x = 0; x < 1; x++)
                     var timer = Stopwatch.StartNew();
                     var result = await model.DetectTruck(record.Frame);
                     timer.Stop();
-                    Console.WriteLine(timer.ElapsedMilliseconds);
-                    Console.WriteLine(result);
+                    Console.WriteLine($"Detection Latency: {timer.ElapsedMilliseconds}\n");
+                    
                     if (result)
                     {
                         await sharedChannel.Writer.WriteAsync(record);
@@ -200,7 +153,7 @@ for (int x = 0; x < 1; x++)
 
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                Console.WriteLine($"{ex.Message}\n");
             }
         })
     );
@@ -237,7 +190,7 @@ var superVisor = Task.Run(async () =>
 
     catch (Exception ex)
     {
-        Console.WriteLine(ex);
+        Console.WriteLine(ex.Message);
     }
 });
 

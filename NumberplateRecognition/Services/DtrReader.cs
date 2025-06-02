@@ -46,28 +46,19 @@ namespace NumberplateRecognition.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine("Service Error: " + _modelPath);
-                    return "Error";
+                    return "ServiceError";
                 }
 
                 var jsonResponse = await response.Content.ReadAsStringAsync();
                 var result = JsonSerializer.Deserialize<RecognitionResult>(jsonResponse);
                 if (result?.Result == null)
                 {
-                    Console.WriteLine("Service app internal error: " + _modelPath);
-                    return "Error";
+                    return "InternalServiceError";
                 }
 
                 if (result.Result == "NotFound")
                 {
-                    Console.WriteLine("Plate Detection failed!");
                     return "NotFound";
-                }
-
-                if (result.Result == "None")
-                {
-                    Console.WriteLine("Text recognition failed!");
-                    return "None";
                 }
 
                 return $"{result.Result} | confidence: {result.Confidence}";
@@ -75,7 +66,7 @@ namespace NumberplateRecognition.Services
 
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                Console.WriteLine(ex.Message);
                 return "ClientError";
             }
         }
