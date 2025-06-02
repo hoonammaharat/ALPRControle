@@ -1,7 +1,6 @@
 ﻿using NumberplateRecognition.Entities;
 using OpenCvSharp;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 
 namespace NumberplateRecognition.Services
@@ -71,7 +70,7 @@ namespace NumberplateRecognition.Services
                     return "None";
                 }
 
-                return result.Result;
+                return $"{result.Result} | confidence: {result.Confidence}";
             }
 
             catch (Exception ex)

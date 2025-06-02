@@ -226,7 +226,7 @@ var superVisor = Task.Run(async () =>
             {
                 if (tasks[i].IsFaulted || tasks[i].IsCompleted)
                 {
-                    Console.WriteLine($"Task Restarted: {i}");
+                    Console.WriteLine($"Task restarted: {i}");
                     tasks[i] = taskFactories[i]();
                 }
             }

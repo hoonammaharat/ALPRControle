@@ -6,5 +6,7 @@
     public class RecognitionResult
     {
         public string? Result { get; set; }
+
+        public float? Confidence { get; set; }
     }
 }

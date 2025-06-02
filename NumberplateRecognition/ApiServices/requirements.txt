@@ -1,0 +1,14 @@
+six~=1.17.0
+fire~=0.7.0
+lmdb~=1.6.2
+natsort~=8.4.0
+fastapi~=0.115.12
+uvicorn~=0.34.2
+pandas~=2.2.3
+numpy~=2.2.6
+nltk~=3.9.1
+opencv_python~=4.11.0.86
+Pillow~=11.2.1
+torch~=2.7.0
+torchvision~=0.22.0
+ultralytics~=8.3.146

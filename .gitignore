@@ -362,3 +362,4 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /NumberplateRecognition/NumberplateRecognition.csproj
+/NumberplateRecognition/ApiServices/models/dtrb-None-VGG-BiLSTM-CTC-license-plate-recognizer.pth
