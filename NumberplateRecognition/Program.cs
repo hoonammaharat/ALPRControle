@@ -11,8 +11,8 @@ using NumberplateRecognition.Services;
 
 // Sources
 
-var json = File.ReadAllText("E:\\Projects\\NumberplateRecognition\\NumberplateRecognition\\images.json");
-var paths = JsonSerializer.Deserialize<List<string>>(json)!;
+// var json = File.ReadAllText("E:\\Projects\\NumberplateRecognition\\NumberplateRecognition\\images.json");
+// var paths = JsonSerializer.Deserialize<List<string>>(json)!;
 
 var jsonUrls = File.ReadAllText("camera.json");
 var urls = JsonSerializer.Deserialize<List<string>>(jsonUrls);
