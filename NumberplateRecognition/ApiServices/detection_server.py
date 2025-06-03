@@ -1,3 +1,5 @@
+import sys
+
 import fastapi
 import uvicorn
 
@@ -34,4 +36,5 @@ async def detect(request: fastapi.Request):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    port = int(sys.argv[1])
+    uvicorn.run(app, host="127.0.0.1", port=(8000 + port))

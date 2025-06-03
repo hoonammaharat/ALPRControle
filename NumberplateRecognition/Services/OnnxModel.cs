@@ -49,6 +49,8 @@ namespace NumberplateRecognition.Services
                 }
             }
             else _session = new InferenceSession(modelPath);
+
+            Console.WriteLine("Model loaded successfully.\n");
         }
 
         public Task<bool> DetectTruck(Mat frame)

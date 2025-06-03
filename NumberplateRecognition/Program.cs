@@ -11,10 +11,10 @@ using System.Threading.Channels;
 //var paths = JsonSerializer.Deserialize<List<string>>(json)!;
 
 
-var json = File.ReadAllText("");
+var json = File.ReadAllText("camera.json");
 var urls = JsonSerializer.Deserialize<List<string>>(json);
 
-const string detectionOnnxPath = "";
+string detectionOnnxPath = Path.Combine("Models", "yolo11n.onnx");
 const string detectionModelPath = "http://127.0.0.1:800#/detect";
 const string recognitionModelPath = "http://127.0.0.1:16000/read";
 
@@ -126,8 +126,8 @@ for (int x = 0; x < (urls?.Count?? 0); x++)
 
 
 
-    ITruckDetectorModel model = new TorchModel(detectionModelPath.Replace("#", x.ToString()));
-    //model = new OnnxModel(detectionOnnxPath);
+    // var model = new TorchModel(detectionModelPath.Replace("#", x.ToString()));
+    var model = new OnnxModel(detectionOnnxPath);
 
     taskFactories.Add(
         () => Task.Run(async () =>
