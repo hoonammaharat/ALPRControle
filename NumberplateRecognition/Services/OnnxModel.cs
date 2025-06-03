@@ -2,6 +2,7 @@
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OpenCvSharp;
+using Serilog;
 
 
 namespace NumberplateRecognition.Services
@@ -97,7 +98,7 @@ namespace NumberplateRecognition.Services
 
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                Log.Error(ex, "Detection Truck Error");
                 return Task.FromResult(false);
             }
         }

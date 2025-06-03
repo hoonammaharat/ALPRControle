@@ -2,6 +2,7 @@
 using OpenCvSharp;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Serilog;
 
 namespace NumberplateRecognition.Services
 {
@@ -66,7 +67,7 @@ namespace NumberplateRecognition.Services
 
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Log.Error(ex, "Reading Plate Error");
                 return "ClientError";
             }
         }

@@ -2,6 +2,7 @@
 using System.Net.Http.Headers;
 using OpenCvSharp;
 using NumberplateRecognition.Entities;
+using Serilog;
 
 namespace NumberplateRecognition.Services
 {
@@ -72,7 +73,7 @@ namespace NumberplateRecognition.Services
 
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                Log.Error(ex, "Detection Truck Error");
                 return false;
             }
         }
