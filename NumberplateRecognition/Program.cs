@@ -155,15 +155,16 @@ for (int x = 0; x < (urls?.Count?? 0); x++)
                 var capture = new VideoCapture(urls[id]);
 
                 while (true)
-                {
                     if (!capture.IsOpened())
                     {
-                        Log.Error("Connection failed to camera: {val}", urls[id]);
-                        await Task.Delay(5000);
+                        Log.Error("Connection failed to camera: {val}   |   reconnecting to camera...", urls[id]);
                         capture = new VideoCapture(urls[id]);
-                        continue;
+                        await Task.Delay(5000);
                     }
+                    else break;
 
+                while (true)
+                {
                     var frame = new Mat();
                     bool success = capture.Read(frame);
                     if (success && !frame.Empty())
@@ -174,8 +175,10 @@ for (int x = 0; x < (urls?.Count?? 0); x++)
                     }
                     else
                     {
-                        Log.Error("Reading stream failed or frame is empty in camera: {val}", urls[id]);
+                        Log.Error("Reading stream failed or frame is empty in camera: {val}   |   reconnecting to camera...", urls[id]);
+                        capture = new VideoCapture(urls[id]);
                         await Task.Delay(1800);
+                        continue;
                     }
                 }
             }
