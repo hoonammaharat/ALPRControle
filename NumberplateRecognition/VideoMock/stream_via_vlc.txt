@@ -1,0 +1,1 @@
+﻿vlc "E:\Projects\NumberplateRecognition\NumberplateRecognition\VideoMock\sample.mp4" --loop --sout "#transcode{vcodec=h264,scale=Auto,acodec=none,scodec=none}:rtp{sdp=rtsp://:8554/truck.sdp}" --sout-keep
