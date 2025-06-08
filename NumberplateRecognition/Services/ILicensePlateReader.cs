@@ -11,7 +11,7 @@ namespace NumberplateRecognition.Services
         /// Read method gets a frame as a Mat object with RGB color code and returns license plate text or status.
         /// </summary>
         /// <param name="frame">An OpenCvSharp4 Mat object</param>
-        /// <returns>Plate text or status: ServiceError, NotFound(plate in frame), None(unable to read), ClientError</returns>
-        Task<string> ReadPlate(Mat frame);
+        /// <returns>Plate text or status(plus confidence score): ServiceError, NotFound(plate in frame), None(unable to read), ClientError</returns>
+        Task<(string, float)> ReadPlate(Mat frame);
     }
 }

@@ -1,0 +1,12 @@
+{
+  "CameraUrls": "rtsp://127.0.0.1:8554/truck.sdp",
+
+  "DetectionModelType": "tp",
+  "DetectionModelPath": "http://127.0.0.1:800#/detect",
+  "RecognitionModelPath": "http://127.0.0.1:16000/read",
+
+  "ApiPath": "http://127.0.0.1:5000",
+
+  "MinimumLogLevel": "Debug",
+  "Seq": "http://localhost:5341"
+}

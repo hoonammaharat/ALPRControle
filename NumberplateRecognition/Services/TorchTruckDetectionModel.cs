@@ -9,7 +9,7 @@ namespace NumberplateRecognition.Services
     /// <summary>
     /// It's an implementation of ITruckDetectorModel which relies on an external REST service(probably written in python) that uses Pytorch native API and runs completely on CUDA.
     /// </summary>
-    public class TorchModel : ITruckDetectorModel
+    public class TorchTruckDetectionModel : ITruckDetectorModel, IDisposable
     {
         Size Shape { get; set; }
 
@@ -21,10 +21,15 @@ namespace NumberplateRecognition.Services
         /// This constructor gets http address of service for communication and processing frames.
         /// </summary>
         /// <param name="modelPath">AI model server http address</param>
-        public TorchModel(string modelPath)
+        public TorchTruckDetectionModel(string modelPath)
         {
             _modelPath = modelPath;
             _httpClient = new HttpClient();
+        }
+
+        public void Dispose()
+        {
+            _httpClient.Dispose();
         }
 
         public async Task<bool> DetectTruck(Mat frame)

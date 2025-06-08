@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using Microsoft.ML.OnnxRuntime;
+﻿using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OpenCvSharp;
 using Serilog;
@@ -10,7 +9,7 @@ namespace NumberplateRecognition.Services
     /// <summary>
     /// It's an implementation of ITruckDetectorModel which relies on an internal ONNX Runtime session without need of external services and Pytorch native APIs.
     /// </summary>
-    public class OnnxModel : ITruckDetectorModel
+    public class OnnxPlateDetectionModel : ITruckDetectorModel
     {
         public Size Shape { get; set; } = new Size(960, 640);
 
@@ -22,7 +21,7 @@ namespace NumberplateRecognition.Services
         /// <param name="modelPath">The path to model file with onnx format</param>
         /// <param name="executionProvider">ONNX Runtime backend for executing algorithm; by default it runs algorithm on CPU, CUDA is recommended</param>
         /// <param name="providerOption">Extra options and settings which may be necessary for an EP</param>
-        public OnnxModel(string modelPath, string? executionProvider = null, Dictionary<string, string>? providerOption = null)
+        public OnnxPlateDetectionModel(string modelPath, string? executionProvider = null, Dictionary<string, string>? providerOption = null)
         {
             if (executionProvider != null)
             {

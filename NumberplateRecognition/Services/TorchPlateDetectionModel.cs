@@ -9,7 +9,7 @@ namespace NumberplateRecognition.Services
     /// <summary>
     /// It's an implementation of ILicensePlateReader which relies on an external REST service(probably written in python) that uses Deep Text Recognition models in Pytorch native API and runs completely on CUDA.
     /// </summary>
-    public class DtrReader : ILicensePlateReader, IDisposable
+    public class TorchPlateDetectionModel : ITruckDetectorModel, IDisposable
     {
         Size Shape { get; set; } = new Size(960, 640);
 
@@ -21,7 +21,7 @@ namespace NumberplateRecognition.Services
         /// This constructor gets http address of service for communication and processing frames.
         /// </summary>
         /// <param name="modelPath">AI model server http address</param>
-        public DtrReader(string modelPath)
+        public TorchPlateDetectionModel(string modelPath)
         {
             _modelPath = modelPath;
             _httpClient = new HttpClient();
@@ -32,7 +32,7 @@ namespace NumberplateRecognition.Services
             _httpClient.Dispose();
         }
 
-        public async Task<(string, float)> ReadPlate(Mat frame)
+        public async Task<bool> DetectTruck(Mat frame)
         {
             try
             {
@@ -50,31 +50,22 @@ namespace NumberplateRecognition.Services
 
                 using var response = await _httpClient.PostAsync(_modelPath, content);
 
-                if (!response.IsSuccessStatusCode)
-                {
-                    return ("ServiceError", 0);
-                }
-
                 var jsonResponse = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<RecognitionResult>(jsonResponse);
-                if (result?.Result == null || result?.Confidence == null)
+                var result = JsonSerializer.Deserialize<DetectionResult>(jsonResponse);
+                if (result?.Result == null)
                 {
-                    return ("InternalServiceError", 0);
+                    Console.WriteLine("Service app internal error: " + _modelPath);
+                    return false;
                 }
 
-                if (result.Result == "NotFound")
-                {
-                    Log.Error("Plate not found in detected image!");
-                    return ("ClientError", 0);
-                }
-
-                return (result.Result, result.Confidence.Value);
+                if (result.Result == "true") return true;
+                return false;
             }
 
             catch (Exception ex)
             {
-                Log.Error(ex, "Reading Plate Error");
-                return ("ClientError", 0);
+                Log.Error(ex, "Detection Plate Error");
+                return false;
             }
         }
     }
