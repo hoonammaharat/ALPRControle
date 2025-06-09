@@ -44,7 +44,7 @@ namespace NumberplateRecognition.Services
                         plate.Triplepart = Convert.ToInt32(t);
                         plate.IranCode = Convert.ToInt32(ir);
                     }
-                    catch (Exception ex)
+                    catch
                     {
                         fail = true;
                     }
