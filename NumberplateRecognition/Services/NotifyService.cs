@@ -23,7 +23,7 @@ namespace NumberplateRecognition.Services
             _httpClient.Dispose();
         }
 
-        public async Task<bool> NotifyApi(int id, string ip, string? text, Mat image, float? conf = 0)
+        public async Task<bool> NotifyApi(int id, string ip, string name, string? text, Mat image, float? conf = 0)
         {
             try
             {
@@ -55,9 +55,9 @@ namespace NumberplateRecognition.Services
 
                 var data = new
                 {
-                    CameraId = id, Ip = ip, DateTime = DateTime.Now, OrginalPlate = text ?? "null",
+                    CameraId = id, Ip = ip, Name = name, DateTime = DateTime.Now, OrginalPlate = text ?? "null",
                     ConfidenceFactor = conf,
-                    PlateNotDetected = fail, plate, image = Convert.ToBase64String(imageBytes)
+                    PlateNotDetected = fail, Plate = plate, image = Convert.ToBase64String(imageBytes)
                 };
 
                 string json = JsonSerializer.Serialize(data);

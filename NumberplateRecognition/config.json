@@ -1,5 +1,7 @@
 {
-  "CameraUrls": "rtsp://127.0.0.1:8554/truck.sdp",
+  "CameraIds": "1|2|6|7",
+  "CameraUrls": "rtsp://admin:Youtab@11425@192.168.100.207:554/main|rtsp://admin:Youtab@11425@192.168.100.213:554/main|rtsp://admin:Youtab@11425@192.168.100.215:554/main|rtsp://admin:Youtab@11425@192.168.100.219:554/main",
+  "CameraNames": "گروه معادن عباس آباد|دروبین خروجی سنگ اسیدی B2|دوربین خروجی سنگ سفید A2|دوربین خروجی موج ریز B3",
 
   "DetectionModelType": "tp",
   "DetectionModelPath": "http://127.0.0.1:800#/detect",

@@ -15,7 +15,12 @@ using NumberplateRecognition.Services;
 var file = File.ReadAllText("config.json");
 var config = JsonSerializer.Deserialize<Dictionary<string, string>>(file);
 
+
+// Camera
+
+var ids = config!["CameraIds"].Split("|");
 var urls = config!["CameraUrls"].Split("|");
+var names = config!["CameraNames"].Split("|");
 var detectionModelType = config["DetectionModelType"];
 var detectionModelPath = config["DetectionModelPath"];
 var recognitionModelPath = config["RecognitionModelPath"];
@@ -89,7 +94,7 @@ taskFactories.Add(
 
                 else
                 {
-                    var success = await notifyService.NotifyApi(record.CameraID, urls[id], result.Item1, record.Frame, result.Item2);
+                    var success = await notifyService.NotifyApi(Convert.ToInt32(ids[id]), urls[id], names[id], result.Item1, record.Frame, result.Item2);
                     if (!success)
                     {
                         string path = Path.Combine("log", "api_error", $"{now.Year}-{now.Month}-{now.Day}");
