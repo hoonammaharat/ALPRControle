@@ -23,7 +23,7 @@ namespace NumberplateRecognition.Services
             _httpClient.Dispose();
         }
 
-        public async Task<bool> NotifyApi(int id, string ip, string name, string? text, Mat image, float? conf = 0)
+        public async Task<bool> NotifyApi(int id, string ip, string name, DateTime now, string? text, Mat image, float? conf = 0)
         {
             try
             {
@@ -55,7 +55,7 @@ namespace NumberplateRecognition.Services
 
                 var data = new
                 {
-                    CameraId = id, Ip = ip, Name = name, DateTime = DateTime.Now, OrginalPlate = text ?? "null",
+                    CameraId = id, Ip = ip, Name = name, DateTime = now, OrginalPlate = text ?? "null",
                     ConfidenceFactor = conf,
                     PlateNotDetected = fail, Plate = plate, image = Convert.ToBase64String(imageBytes)
                 };
@@ -66,6 +66,7 @@ namespace NumberplateRecognition.Services
                 using var response = await _httpClient.PostAsync(ApiPath, content);
                 if (!response.IsSuccessStatusCode)
                 {
+                    Log.Error("Response Error {StatusCode} while attempting to send detected plate in camera #{id}: {val}", response.StatusCode.ToString(), id, ip);
                     return false;
                 }
 

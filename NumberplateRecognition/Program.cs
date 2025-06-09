@@ -19,7 +19,14 @@ var config = JsonSerializer.Deserialize<Dictionary<string, string>>(file);
 // Camera
 
 var ids = config!["CameraIds"].Split("|");
-var urls = config!["CameraUrls"].Split("|");
+
+var addresses = config!["CameraUrls"].Split("|");
+var urls = new string[addresses.Length];
+for (int i = 0; i < addresses.Length; i++)
+{
+    urls[i] = $"{config!["CameraProtocol"]}://{config!["CameraUserPass"]}@{addresses[i]}/{config!["CameraPath"]}";
+}
+
 var names = config!["CameraNames"].Split("|");
 var detectionModelType = config["DetectionModelType"];
 var detectionModelPath = config["DetectionModelPath"];
@@ -94,7 +101,7 @@ taskFactories.Add(
 
                 else
                 {
-                    var success = await notifyService.NotifyApi(Convert.ToInt32(ids[id]), urls[id], names[id], result.Item1, record.Frame, result.Item2);
+                    var success = await notifyService.NotifyApi(Convert.ToInt32(ids[id]), addresses[id], names[id], now, result.Item1, record.Frame, result.Item2);
                     if (!success)
                     {
                         string path = Path.Combine("log", "api_error", $"{now.Year}-{now.Month}-{now.Day}");
