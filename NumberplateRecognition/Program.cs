@@ -99,7 +99,7 @@ taskFactories.Add(
                     Cv2.ImWrite(Path.Combine(path, $"{now.Hour}-{now.Minute}-{now.Second}_{record.CameraID}.jpg"), record.Frame);
                 }
 
-                else if (result.Item2 >= 0.5)
+                else if (result.Item2 >= 0.5 || result.Item1.Length == 8)
                 {
                     var success = await notifyService.NotifyApi(Convert.ToInt32(ids[id]), addresses[id], names[id], now, result.Item1, record.Frame, result.Item2);
                     if (!success)
