@@ -1,3 +1,4 @@
+import datetime
 import argparse
 
 import fastapi
@@ -73,6 +74,9 @@ async def read(request: fastapi.Request):
             plate_crop = cv2.cvtColor(plate_crop, cv2.COLOR_BGR2GRAY)
 
             text, confidence = plate_recognizer.predict(plate_crop, opt)
+
+	    print(datetime.datetime.now())
+
             if False:
                 return { "Result": "Unreadable", "Confidence": 0.0 }
             return { "Result": text, "Confidence": float(confidence) }

@@ -30,17 +30,17 @@ namespace NumberplateRecognition.Services
                 bool fail = false;
                 Plate plate = new Plate();
 
-                if (text?.Length == 8)
+                if (text?.Length >= 6)
                 {
                     var d = text.Substring(0, 2);
                     var a = text.Substring(2, 1);
                     var t = text.Substring(3, 3);
-                    var ir = text.Substring(6, 2);
+                    var ir = (text.Length == 8) ? text.Substring(6, 2) : "47";
 
                     try
                     {
                         plate.DoualPart = Convert.ToInt32(d);
-                        plate.AlphaPart = a;
+                        plate.AlphaPart = (a == "j") ? "e" : a;
                         plate.Triplepart = Convert.ToInt32(t);
                         plate.IranCode = Convert.ToInt32(ir);
                     }
