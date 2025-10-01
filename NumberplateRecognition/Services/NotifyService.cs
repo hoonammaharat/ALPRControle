@@ -41,8 +41,15 @@ namespace NumberplateRecognition.Services
                     {
                         plate.DoualPart = Convert.ToInt32(d);
                         plate.AlphaPart = (a == "j") ? "e" : a;
-                        plate.Triplepart = Convert.ToInt32(t);
                         plate.IranCode = Convert.ToInt32(ir);
+                    }
+                    catch
+                    {
+                        fail = true;
+                    }
+                    try
+                    {
+                        plate.Triplepart = Convert.ToInt32(t);
                     }
                     catch
                     {
@@ -50,6 +57,8 @@ namespace NumberplateRecognition.Services
                     }
                 }
                 else fail = true;
+
+                if (plate.DoualPart == 0 && plate.Triplepart == 0) return false;
 
                 Cv2.ImEncode(".jpg", image, out byte[] imageBytes);
 
