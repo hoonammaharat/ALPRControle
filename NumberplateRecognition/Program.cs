@@ -21,7 +21,7 @@ var config = JsonSerializer.Deserialize<Dictionary<string, string>>(file);
 var ids = config!["CameraIds"].Split("|");
 var names = config!["CameraNames"].Split("|");
 var addresses = config!["CameraAddresses"].Split("|");
-var userPasses = config!["UserPasses"].Split("|");
+var userPasses = config!["CameraUserPasses"].Split("|");
 
 var urls = new string[addresses.Length];
 for (int i = 0; i < addresses.Length; i++)
