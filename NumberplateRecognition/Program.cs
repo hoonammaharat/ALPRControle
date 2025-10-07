@@ -19,15 +19,16 @@ var config = JsonSerializer.Deserialize<Dictionary<string, string>>(file);
 // Camera
 
 var ids = config!["CameraIds"].Split("|");
-
+var names = config!["CameraNames"].Split("|");
 var addresses = config!["CameraAddresses"].Split("|");
+var userPasses = config!["UserPasses"].Split("|");
+
 var urls = new string[addresses.Length];
 for (int i = 0; i < addresses.Length; i++)
 {
-    urls[i] = $"{config!["CameraProtocol"]}://{config!["CameraUserPass"]}@{addresses[i]}/{config!["CameraPath"]}";
+    urls[i] = $"{config!["CameraProtocol"]}://{userPasses[i]}@{addresses[i]}/{config!["CameraPath"]}";
 }
 
-var names = config!["CameraNames"].Split("|");
 var detectionModelType = config["DetectionModelType"];
 var detectionModelPath = config["DetectionModelPath"];
 var recognitionModelPath = config["RecognitionModelPath"];
