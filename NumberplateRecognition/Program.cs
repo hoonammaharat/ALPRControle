@@ -13,33 +13,15 @@ using NumberplateRecognition.Services;
 // Configurations
 
 var file = File.ReadAllText("config.json");
-var config = JsonSerializer.Deserialize<Dictionary<string, string>>(file);
 
-
-// Camera
-
-var ids = config!["CameraIds"].Split("|");
-var names = config!["CameraNames"].Split("|");
-var addresses = config!["CameraAddresses"].Split("|");
-var userPasses = config!["CameraUserPasses"].Split("|");
-
-var urls = new string[addresses.Length];
-for (int i = 0; i < addresses.Length; i++)
-{
-    urls[i] = $"{config!["CameraProtocol"]}://{userPasses[i]}@{addresses[i]}/{config!["CameraPath"]}";
-}
-
-var detectionModelType = config["DetectionModelType"];
-var detectionModelPath = config["DetectionModelPath"];
-var recognitionModelPath = config["RecognitionModelPath"];
-var apiPath = config["ApiPath"];
+var config = JsonSerializer.Deserialize<AppConfig>(file) ?? throw new InvalidOperationException("Invalid configuration file.");
 
 var logSetting = new Dictionary<string, string?>()
 {
-    ["Serilog:MinimumLevel:Default"] =  config["MinimumLogLevel"],
+    ["Serilog:MinimumLevel:Default"] =  config.MinimumLogLevel,
     ["Serilog:WriteTo:0:Name"] = "Console",
     ["Serilog:WriteTo:1:Name"] = "Seq",
-    ["Serilog:WriteTo:1:Args:serverUrl"] = config["Seq"]
+    ["Serilog:WriteTo:1:Args:serverUrl"] = config.Seq
 };
 IConfiguration serilog = new ConfigurationBuilder().AddInMemoryCollection(logSetting).Build();
 Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(serilog).CreateLogger();
@@ -47,33 +29,35 @@ Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(serilog).CreateLog
 
 // Lists
 
+var cameras = config.Cameras;
+cameras.RemoveAll(a => !a.IsActive);
+
 List<VideoCapture> captures = [];
 List<Object> locks = [];
 List<Func<Task>> taskFactories = [];
 List<Task> tasks = [];
 
 
-
 // Reader Task
 
 Channel<Record> sharedChannel = Channel.CreateUnbounded<Record>();
 
-ILicensePlateReader reader = new DtrReader(recognitionModelPath);
+ILicensePlateReader reader = new DtrReader(config.RecognitionModelPath);
 taskFactories.Add(
     () => Task.Run(async () =>
     {
-        int id = 0;
+        int i = 0;
 
         try
         {
-            var notifyService = new NotifyService(apiPath);
+            var notifyService = new NotifyService(config.ApiPath);
 
             while (true)
             {
                 using var record = await sharedChannel.Reader.ReadAsync();
                 var now = DateTime.Now;
-                id = record.CameraID;
-                Log.Debug("Got frame from camera #{id}: {val}", id, urls![id]);
+                i = record.CameraIndex;
+                Log.Debug("Got frame from camera #{id}", cameras[i].Id);
 
                 var timer = Stopwatch.StartNew();
                 (string, float) result = await reader.ReadPlate(record.Frame);
@@ -87,7 +71,7 @@ taskFactories.Add(
                     {
                         Directory.CreateDirectory(path);
                     }
-                    Cv2.ImWrite(Path.Combine(path, $"{now.Hour}-{now.Minute}-{now.Second}_{record.CameraID}.jpg"), record.Frame);
+                    Cv2.ImWrite(Path.Combine(path, $"{now.Hour}-{now.Minute}-{now.Second}_{cameras[record.CameraIndex].Id}.jpg"), record.Frame);
                 }
 
                 else if (result.Item1 == "ClientError")
@@ -97,12 +81,12 @@ taskFactories.Add(
                     {
                         Directory.CreateDirectory(path);
                     }
-                    Cv2.ImWrite(Path.Combine(path, $"{now.Hour}-{now.Minute}-{now.Second}_{record.CameraID}.jpg"), record.Frame);
+                    Cv2.ImWrite(Path.Combine(path, $"{now.Hour}-{now.Minute}-{now.Second}_{cameras[record.CameraIndex].Id}.jpg"), record.Frame);
                 }
 
                 else if (result.Item2 >= 0.1 || result.Item1.Length == 8)
                 {
-                    var success = await notifyService.NotifyApi(Convert.ToInt32(ids[id]), addresses[id], names[id], now, result.Item1, record.Frame, result.Item2);
+                    var success = await notifyService.NotifyApi(Convert.ToInt32(cameras[i].Id), cameras[i].Address, cameras[i].Name, now, result.Item1, record.Frame, result.Item2);
                     if (!success)
                     {
                         string path = Path.Combine("log", "api_error", $"{now.Year}-{now.Month}-{now.Day}");
@@ -110,7 +94,7 @@ taskFactories.Add(
                         {
                             Directory.CreateDirectory(path);
                         }
-                        Cv2.ImWrite(Path.Combine(path, $"{now.Hour}-{now.Minute}-{now.Second}_{record.CameraID}.jpg"), record.Frame);
+                        Cv2.ImWrite(Path.Combine(path, $"{now.Hour}-{now.Minute}-{now.Second}_{cameras[record.CameraIndex].Id}.jpg"), record.Frame);
                     }
                 }
             }
@@ -118,7 +102,7 @@ taskFactories.Add(
 
         catch (Exception ex)
         {
-            Log.Error(ex, "Recognition Error in camera #{id}:  {val}", id, urls![id]);
+            Log.Error(ex, "Recognition Error in camera #{id}", cameras[i].Id);
         }
     })
 );
@@ -127,15 +111,15 @@ taskFactories.Add(
 
 // Captures' initialization
 
-for (int x = 0; x < (urls?.Length ?? 0); x++)
+for (int i = 0; i < cameras.Count; i++)
 {
-    if (!String.IsNullOrEmpty(urls![x]))
+    if (!String.IsNullOrEmpty(cameras[i].Url))
     {
-        captures.Add(new VideoCapture(urls![x]));
+        captures.Add(new VideoCapture(cameras[i].Url));
         while (true)
         {
-            if (captures[x].IsOpened()) break;
-            captures[x] = new VideoCapture(urls![x]);
+            if (captures[i].IsOpened()) break;
+            captures[i] = new VideoCapture(cameras[i].Url);
             Thread.Sleep(500);
         }
 
@@ -152,17 +136,17 @@ taskFactories.Add(() => Task.Run(async () =>
     {
         while (true)
         {
-            for (int x = 0; x < (urls?.Length ?? 0); x++)
+            for (int i = 0; i < cameras.Count; i++)
             {
-                lock (locks[x])
+                lock (locks[i])
                 {
-                    bool success = captures[x].Grab();
+                    bool success = captures[i].Grab();
                     if (!success)
                     {
-                        Log.Error("Reading stream failed or frame is empty in camera: {val}   |   reconnecting to camera...", urls![x]);
-                        captures[x].Release();
-                        captures[x].Dispose();
-                        captures[x] = new VideoCapture(urls[x]);
+                        Log.Error("Reading stream failed or frame is empty in camera: {val}   |   reconnecting to camera...", cameras[i].Url);
+                        captures[i].Release();
+                        captures[i].Dispose();
+                        captures[i] = new VideoCapture(cameras[i].Url);
                     }
                 }
             }
@@ -180,17 +164,17 @@ taskFactories.Add(() => Task.Run(async () =>
 
 // Camera Tasks
 
-for (int x = 0; x < (urls?.Length ?? 0); x++)
+for (int i = 0; i < cameras.Count; i++)
 {
-    if (String.IsNullOrEmpty(urls![x])) continue;
+    if (String.IsNullOrEmpty(cameras[i].Url)) continue;
 
-    int id = x;
+    int ii = i;
     var channel = Channel.CreateBounded<Record>(new BoundedChannelOptions(capacity: 14) { FullMode = BoundedChannelFullMode.DropOldest });
 
     ITruckDetectorModel model;
-    if (detectionModelType == "ot") model = new OnnxTruckDetectionModel(detectionModelPath);
-    else if (detectionModelType == "tt") model = new TorchTruckDetectionModel(detectionModelPath.Replace("#", id.ToString()));
-    else model = new TorchPlateDetectionModel(detectionModelPath.Replace("#", id.ToString()));
+    if (config.DetectionModelType == "ot") model = new OnnxTruckDetectionModel(config.DetectionModelPath);
+    else if (config.DetectionModelType == "tt") model = new TorchTruckDetectionModel(config.DetectionModelPath.Replace("#", ii.ToString("D3")));
+    else model = new TorchPlateDetectionModel(config.DetectionModelPath.Replace("#", ii.ToString("D3")));
 
     taskFactories.Add(
         () => Task.Run(async () =>
@@ -220,7 +204,7 @@ for (int x = 0; x < (urls?.Length ?? 0); x++)
 
             catch (Exception ex)
             {
-                Log.Error(ex, "Detection Task Error in camera #{id} with model {model} in camera: {val}", id, detectionModelPath, urls[id]);
+                Log.Error(ex, "Detection Task Error in camera #{id} with model {model} in camera: {val}", cameras[ii].Id, config.DetectionModelPath, cameras[ii].Url);
                 record?.Dispose();
             }
         })
@@ -250,28 +234,28 @@ for (int x = 0; x < (urls?.Length ?? 0); x++)
                 {
                     frame = new Mat();
                     bool success;
-                    lock (locks[id])
+                    lock (locks[ii])
                     {
-                        success = captures[id].Retrieve(frame);
+                        success = captures[ii].Retrieve(frame);
                     }
 
                     if (success && !frame.Empty())
                     {
-                        var record = new Record(frame, id);
+                        var record = new Record(frame, ii);
                         await channel.Writer.WriteAsync(record);
                         await Task.Delay(1000);
                     }
 
                     else
                     {
-                        Log.Error("Reading stream failed or frame is empty in camera: {val}   |   reconnecting to camera...", urls[id]);
+                        Log.Error("Reading stream failed or frame is empty in camera: {val}   |   reconnecting to camera...", cameras[ii].Url);
                         frame.Dispose();
 
-                        lock (locks[id])
+                        lock (locks[ii])
                         {
-                            captures[id].Release();
-                            captures[id].Dispose();
-                            captures[id] = new VideoCapture(urls[id]);
+                            captures[ii].Release();
+                            captures[ii].Dispose();
+                            captures[ii] = new VideoCapture(cameras[ii].Url);
                         }
                         await Task.Delay(2000);
                     }
@@ -280,7 +264,7 @@ for (int x = 0; x < (urls?.Length ?? 0); x++)
 
             catch (Exception ex)
             {
-                Log.Error(ex, "StreamReader Task Error in camera #{id}: {val}", id, urls[id]);
+                Log.Error(ex, "StreamReader Task Error in camera #{id}", cameras[ii].Id);
                 frame?.Dispose();
             }
         })
@@ -325,7 +309,6 @@ var supervisor = Task.Run(async () =>
         Log.Error(ex, "Supervisor Error occured.");
     }
 });
-
 
 
 tasks.Add(supervisor);

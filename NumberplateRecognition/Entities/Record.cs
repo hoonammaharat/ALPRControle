@@ -10,12 +10,12 @@ namespace NumberplateRecognition.Entities
     {
         public Mat Frame { get; set; }
 
-        public int CameraID { get; set; }
+        public int CameraIndex { get; set; }
 
-        public Record(Mat frame, int id)
+        public Record(Mat frame, int index)
         {
             Frame = frame;
-            CameraID = id;
+            CameraIndex = index;
         }
 
         public void Dispose()

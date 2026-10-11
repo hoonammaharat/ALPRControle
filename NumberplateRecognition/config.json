@@ -1,14 +1,18 @@
 {
-  "CameraIds": "1",
-  "CameraAddresses": "127.0.0.1:8554",
-  "CameraNames": "VLC Mock Stream",
-
-  "CameraProtocol": "rtsp",
-  "CameraUserPass": "",
-  "CameraPath": "truck.sdp",
+  "Cameras": [
+    {
+      "Id": 1,
+      "Name": "cam 1",
+      "Username": "admin",
+      "Password": "1234",
+      "Address": "192.168.30.2:554",
+      "Path": "truck.sdp",
+      "IsActive": true
+    }
+  ],
 
   "DetectionModelType": "tp",
-  "DetectionModelPath": "http://127.0.0.1:800#/detect",
+  "DetectionModelPath": "http://127.0.0.1:8#/detect",
   "RecognitionModelPath": "http://127.0.0.1:16000/read",
 
   "ApiPath": "http://127.0.0.1:5000",
