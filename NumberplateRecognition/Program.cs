@@ -37,8 +37,9 @@ var apiPath = config["ApiPath"];
 var logSetting = new Dictionary<string, string?>()
 {
     ["Serilog:MinimumLevel:Default"] =  config["MinimumLogLevel"],
-    ["Serilog:WriteTo:0:Name"] = "Seq",
-    ["Serilog:WriteTo:0:Args:serverUrl"] = config["Seq"]
+    ["Serilog:WriteTo:0:Name"] = "Console",
+    ["Serilog:WriteTo:1:Name"] = "Seq",
+    ["Serilog:WriteTo:1:Args:serverUrl"] = config["Seq"]
 };
 IConfiguration serilog = new ConfigurationBuilder().AddInMemoryCollection(logSetting).Build();
 Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(serilog).CreateLogger();
@@ -69,9 +70,8 @@ taskFactories.Add(
 
             while (true)
             {
-                var now = DateTime.Now;
-
                 using var record = await sharedChannel.Reader.ReadAsync();
+                var now = DateTime.Now;
                 id = record.CameraID;
                 Log.Debug("Got frame from camera #{id}: {val}", id, urls![id]);
 
@@ -100,7 +100,7 @@ taskFactories.Add(
                     Cv2.ImWrite(Path.Combine(path, $"{now.Hour}-{now.Minute}-{now.Second}_{record.CameraID}.jpg"), record.Frame);
                 }
 
-                else if (result.Item2 >= 0.5 || result.Item1.Length == 8)
+                else if (result.Item2 >= 0.1 || result.Item1.Length == 8)
                 {
                     var success = await notifyService.NotifyApi(Convert.ToInt32(ids[id]), addresses[id], names[id], now, result.Item1, record.Frame, result.Item2);
                     if (!success)
