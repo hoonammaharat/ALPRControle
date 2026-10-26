@@ -31,6 +31,7 @@ Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(serilog).CreateLog
 
 var cameras = config.Cameras;
 cameras.RemoveAll(a => !a.IsActive);
+Log.Information(String.Join('\n', cameras.Select(a => a.Url)));
 
 List<VideoCapture> captures = [];
 List<Object> locks = [];
@@ -43,6 +44,7 @@ List<Task> tasks = [];
 Channel<Record> sharedChannel = Channel.CreateUnbounded<Record>();
 
 ILicensePlateReader reader = new DtrReader(config.RecognitionModelPath);
+
 taskFactories.Add(
     () => Task.Run(async () =>
     {
@@ -50,19 +52,19 @@ taskFactories.Add(
 
         try
         {
-            var notifyService = new NotifyService(config.ApiPath);
+            var notifyService = new NotifyService(config.ApiPath, config.DefaultIranCode);
 
             while (true)
             {
                 using var record = await sharedChannel.Reader.ReadAsync();
                 var now = DateTime.Now;
                 i = record.CameraIndex;
-                Log.Debug("Got frame from camera #{id}", cameras[i].Id);
+                Log.Information("Got frame from camera #{id}", cameras[i].Id);
 
                 var timer = Stopwatch.StartNew();
                 (string, float) result = await reader.ReadPlate(record.Frame);
                 timer.Stop();
-                Log.Debug("Result: {r}  |  Recognition latency: {t}", $"{result.Item1}  |  {result.Item2}", timer.ElapsedMilliseconds);
+                Log.Information("Result: {r}  |  Recognition latency: {t}", $"{result.Item1}  |  {result.Item2}", timer.ElapsedMilliseconds);
 
                 if (result.Item1 == "ServiceError" || result.Item1 == "InternalServiceError")
                 {

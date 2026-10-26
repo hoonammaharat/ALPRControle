@@ -12,6 +12,8 @@ public class AppConfig
     
     public required string ApiPath { get; set; }
     
+    public required string DefaultIranCode { get; set; }
+    
     public required string MinimumLogLevel { get; set; }
     
     public required string Seq { get; set; }

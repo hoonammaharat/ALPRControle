@@ -56,6 +56,7 @@ namespace NumberplateRecognition.Services
                 }
 
                 var jsonResponse = await response.Content.ReadAsStringAsync();
+                Log.Information(jsonResponse);
                 var result = JsonSerializer.Deserialize<RecognitionResult>(jsonResponse);
                 if (result?.Result == null || result?.Confidence == null)
                 {

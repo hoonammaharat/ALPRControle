@@ -16,6 +16,7 @@
   "RecognitionModelPath": "http://127.0.0.1:16000/read",
 
   "ApiPath": "http://127.0.0.1:5000",
+  "DefaultIranCode": "47",
 
   "MinimumLogLevel": "Debug",
   "Seq": "http://localhost:5341"
