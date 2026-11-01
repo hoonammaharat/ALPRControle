@@ -16,6 +16,8 @@ public class ControlCamera
     
     public bool IsActive { get; set; }
 
+    public bool IsBascule { get; set; }
+
     private const string Protocol = "rtsp";
 
     public string Url => $"{Protocol}://{Username}:{Password}@{Address}/{Path}";

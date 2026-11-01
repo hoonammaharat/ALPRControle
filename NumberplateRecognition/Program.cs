@@ -36,7 +36,7 @@ Log.Information(String.Join('\n', cameras.Select(a => a.Url)));
 var cameraTracker = new Dictionary<int, PlateSeen?>();
 for (int i = 0; i < cameras.Count; i++)
 {
-    cameraTracker.Add(i, null);
+    cameraTracker[i] = null;
 }
 
 List<VideoCapture> captures = [];
@@ -92,11 +92,17 @@ taskFactories.Add(
                     Cv2.ImWrite(Path.Combine(path, $"{now.Hour}-{now.Minute}-{now.Second}_{cameras[record.CameraIndex].Id}.jpg"), record.Frame);
                 }
 
-                else if (result.Item2 >= 0.1 || result.Item1.Length == 8)
+                else if (result.Item2 >= 0.4 || result.Item1.Length == 8)
                 {
+                    if (cameras[record.CameraIndex].IsBascule)
+                    {
+                        var alpha = result.Item1.FirstOrDefault(a => char.IsAsciiLetter(a));
+                        result.Item1 = result.Item1.Replace(alpha, 'e');
+                    }
+
                     var cameraLastSeenPlate = cameraTracker[record.CameraIndex];
                     
-                    if (cameraLastSeenPlate?.Plate == result.Item1 && cameraLastSeenPlate?.LastSeen >= DateTime.Now.AddMinutes(-5))
+                    if (cameraLastSeenPlate != null) if (cameraLastSeenPlate.Plate == result.Item1 && (DateTime.Now - cameraLastSeenPlate.LastSeen <= TimeSpan.FromMinutes(5)))
                     {
                         cameraLastSeenPlate.LastSeen = DateTime.Now;
                         cameraTracker[i] = cameraLastSeenPlate;
