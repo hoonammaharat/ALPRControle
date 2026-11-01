@@ -33,6 +33,12 @@ var cameras = config.Cameras;
 cameras.RemoveAll(a => !a.IsActive);
 Log.Information(String.Join('\n', cameras.Select(a => a.Url)));
 
+var cameraTracker = new Dictionary<int, PlateSeen?>();
+for (int i = 0; i < cameras.Count; i++)
+{
+    cameraTracker.Add(i, null);
+}
+
 List<VideoCapture> captures = [];
 List<Object> locks = [];
 List<Func<Task>> taskFactories = [];
@@ -88,8 +94,27 @@ taskFactories.Add(
 
                 else if (result.Item2 >= 0.1 || result.Item1.Length == 8)
                 {
+                    var cameraLastSeenPlate = cameraTracker[record.CameraIndex];
+                    
+                    if (cameraLastSeenPlate?.Plate == result.Item1 && cameraLastSeenPlate?.LastSeen >= DateTime.Now.AddMinutes(-5))
+                    {
+                        cameraLastSeenPlate.LastSeen = DateTime.Now;
+                        cameraTracker[i] = cameraLastSeenPlate;
+                        continue;
+                    }
+                    
                     var success = await notifyService.NotifyApi(Convert.ToInt32(cameras[i].Id), cameras[i].Address, cameras[i].Name, now, result.Item1, record.Frame, result.Item2);
-                    if (!success)
+                    if (success)
+                    {
+                        if (cameraLastSeenPlate == null) cameraTracker[i] = new PlateSeen() { LastSeen = DateTime.Now, Plate = result.Item1 };
+                        else
+                        {
+                            cameraLastSeenPlate.LastSeen = DateTime.Now;
+                            cameraLastSeenPlate.Plate = result.Item1;
+                            cameraTracker[i] = cameraLastSeenPlate;
+                        }
+                    }
+                    else
                     {
                         string path = Path.Combine("log", "api_error", $"{now.Year}-{now.Month}-{now.Day}");
                         if (!Directory.Exists(path))
